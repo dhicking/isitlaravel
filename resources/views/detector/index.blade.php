@@ -32,7 +32,7 @@
                             type="text" 
                             name="url" 
                             id="url" 
-                            class="w-full px-5 py-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:border-transparent transition-all text-lg outline-none"
+                            class="w-full px-5 py-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-lg outline-none"
                             placeholder="laravel.com"
                             value="{{ old('url', $prefillUrl ?? '') }}"
                             spellcheck="false"
@@ -47,7 +47,7 @@
                     <button 
                         type="submit" 
                         id="submit-button"
-                        class="bg-laravel-red hover:bg-red-600 focus:ring-4 focus:ring-red-500 focus:ring-offset-2 text-white font-semibold px-6 sm:px-10 py-4 rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 outline-none relative"
+                        class="bg-laravel-red hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:ring-inset text-white font-semibold px-6 sm:px-10 py-4 rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 outline-none relative"
                     >
                         <span id="button-text">Analyze</span>
                         <span id="loading-spinner" class="hidden absolute inset-0 flex items-center justify-center">
