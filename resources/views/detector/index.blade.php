@@ -12,7 +12,7 @@
     <div id="main-content" class="max-w-2xl w-full">
         <!-- Hero Title -->
         <div class="text-center mb-12">
-            <h1 class="font-serif text-6xl md:text-7xl lg:text-8xl font-normal italic text-gray-900 mb-6 tracking-loose">
+            <h1 class="font-serif text-6xl md:text-7xl lg:text-8xl font-normal italic text-gray-900 mb-6">
                 Is It Laravel?
             </h1>
             <p class="text-lg md:text-xl text-gray-600 mb-2">

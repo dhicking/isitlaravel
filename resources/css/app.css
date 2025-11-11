@@ -10,3 +10,9 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
 }
+
+@layer utilities {
+    .font-serif {
+        font-family: 'Instrument Serif', ui-serif, Georgia, serif !important;
+    }
+}
