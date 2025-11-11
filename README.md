@@ -4,19 +4,21 @@ A beautiful Laravel application that detects if any website is built with Larave
 
 ## Features
 
-✨ **Comprehensive Detection** - Checks for 8 different Laravel indicators:
-- XSRF-TOKEN cookies
-- laravel_session cookies
-- CSRF meta tags
-- _token hidden inputs
-- Vite build tools
-- Inertia.js integration
-- Livewire components
-- Laravel 404 page patterns
+✨ **Comprehensive Detection** - Checks for 17 different Laravel indicators:
+- **Core Laravel**: XSRF-TOKEN cookies, laravel_session cookies, CSRF meta tags, _token inputs, X-Powered-By headers
+- **Ecosystem**: Vite assets, Mix manifest, Inertia.js, Livewire, Laravel Echo, Blade comments, Breeze/Jetstream layouts
+- **Platform**: Laravel 404 pages, /up health check endpoint, Laravel tools (Telescope, Horizon, Nova, Pulse)
+- **Admin Panels**: Filament, Statamic
 
-🎨 **Beautiful UI** - Modern, responsive design with gradient backgrounds and smooth animations
+🎨 **Beautiful UI** - Clean, modern design with Instrument Sans/Serif fonts and responsive layout
 
-📊 **Detailed Results** - Shows detection confidence, score breakdown, and component counts
+📊 **Detailed Results** - Shows detection confidence (up to 100% for definitive indicators), score breakdown, and component counts
+
+🔒 **Security** - SSRF protection, security headers (CSP, HSTS, X-Frame-Options), and safe URL validation
+
+⚡ **Performance** - Response caching (15 min), parallel HTTP requests, Laravel Octane with FrankenPHP
+
+📤 **Social Sharing** - Easy sharing to X/Twitter, Bluesky, or copy-to-clipboard for any platform
 
 🚀 **Modern Stack** - Built with Laravel 12, Tailwind CSS, and modern PHP practices
 
@@ -37,9 +39,10 @@ This application was inspired by a Chrome extension and implements the same dete
 - **Livewire**: Detects wire:id attributes and Livewire components
 
 ### Confidence Scoring
-- **High Confidence** (3+ indicators): Strong likelihood of Laravel
-- **Medium Confidence** (1-2 indicators): Possibly Laravel
-- **Low Confidence** (0 indicators): Unlikely to be Laravel
+- **100% Confidence** (Definitive): Detected Filament, Telescope, Horizon, Nova, Pulse, Livewire, Echo, or Breeze/Jetstream - "Definitely Laravel!"
+- **High Confidence** (3+ indicators): Strong likelihood of Laravel - "Highly likely Laravel!"
+- **Medium Confidence** (1-2 indicators): Possibly Laravel - "Possibly Laravel"
+- **Low Confidence** (0 indicators): Unlikely to be Laravel - "Unlikely to be Laravel"
 
 ## Installation
 
@@ -75,12 +78,13 @@ The application will be available at `http://localhost:8000`
 
 1. Open the application in your browser
 2. Enter any website URL (e.g., `laravel.com`, `forge.laravel.com`)
-3. Click "🔍 Is it Laravel?"
+3. Click "Analyze"
 4. View the detailed detection results with:
-   - Overall confidence score
-   - Indicator breakdown by category
-   - Detected components (Inertia/Livewire)
+   - Overall confidence score (0-100%)
+   - Indicator breakdown by category (Core Laravel, Ecosystem, Platform & Endpoints)
+   - Detected components (Inertia/Livewire/Tools)
    - Visual progress indicators
+   - Share results on social media or copy to clipboard
 
 ## Example URLs to Test
 
@@ -122,12 +126,20 @@ routes/
 - Composer
 - Laravel 12.x
 
+## Security & Performance
+
+- **SSRF Protection**: Blocks private IPs and dangerous hostnames to prevent server-side request forgery
+- **Response Caching**: Results cached for 15 minutes to reduce load and improve performance
+- **Security Headers**: CSP, HSTS, X-Frame-Options, and more for secure browsing
+- **Parallel Requests**: Multiple checks run simultaneously for faster detection
+
 ## Notes
 
 - Some Laravel sites may have custom configurations that hide indicators
 - Network requests may fail for sites with strict security policies
 - False negatives are possible but false positives are rare
 - The tool respects rate limits and uses reasonable timeouts
+- Results are cached to avoid hammering the same sites repeatedly
 
 ## Credits
 

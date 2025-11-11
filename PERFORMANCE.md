@@ -30,10 +30,17 @@ This Laravel application is optimized for maximum performance on Laravel Cloud.
 - Faster class loading
 - Applied with `--optimize-autoloader` flag
 
-### 6. **HTTP/2 Server Push**
-- Preload assets using Link headers
-- Faster page load times
-- Implemented via middleware
+### 6. **Response Caching**
+- Detection results cached for 15 minutes
+- Error responses cached for 5 minutes
+- Reduces redundant HTTP requests to target sites
+- Improves response time for repeated URL checks
+- Cache can be bypassed with "Re-scan" button
+
+### 7. **Parallel HTTP Requests**
+- Multiple detection checks run simultaneously using `Http::pool()`
+- Significantly faster than sequential requests
+- All tool checks, 404 checks, and endpoint checks run in parallel
 
 ## Deployment
 
