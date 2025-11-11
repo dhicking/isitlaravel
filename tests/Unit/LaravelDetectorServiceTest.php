@@ -400,4 +400,78 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $result['percentage']);
         $this->assertLessThanOrEqual(100, $result['percentage']);
     }
+
+    public function test_detects_filament_from_html(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            if ($request->url() === 'https://example.com') {
+                return Http::response(
+                    '<html><head><link rel="stylesheet" href="/vendor/filament/assets/app.css"></head><body><div id="filament">Admin Panel</div></body></html>',
+                    200
+                );
+            }
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['filament']);
+    }
+
+    public function test_detects_filament_from_login_page(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/filament/login')) {
+                return Http::response('<html><head><title>Filament Login</title></head><body><div id="filament">Login</div></body></html>', 200);
+            }
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['filament']);
+    }
+
+    public function test_detects_statamic_from_html(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            if ($request->url() === 'https://example.com') {
+                return Http::response(
+                    '<html><head><meta name="generator" content="Statamic"></head><body>Content</body></html>',
+                    200
+                );
+            }
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['statamic']);
+    }
+
+    public function test_detects_statamic_from_control_panel(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/cp')) {
+                return Http::response('<html><head><title>Statamic Control Panel</title></head><body>CP</body></html>', 200);
+            }
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['statamic']);
+    }
 }

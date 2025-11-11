@@ -12,7 +12,7 @@ class LaravelDetectorService
 
     private const LOW_CONFIDENCE_THRESHOLD = 1;
 
-    private const TOTAL_INDICATORS = 15;
+    private const TOTAL_INDICATORS = 17;
 
     /**
      * Detect if a website is built with Laravel by analyzing various indicators.
@@ -39,6 +39,8 @@ class LaravelDetectorService
             'bladeComments' => false,
             'laravelEcho' => false,
             'breezeJetstream' => false,
+            'filament' => false,
+            'statamic' => false,
             'upEndpoint' => false,
             'poweredByHeader' => false,
         ];
@@ -48,6 +50,8 @@ class LaravelDetectorService
         $livewireCount = 0;
         $detectedTools = [];
         $faviconUrl = null;
+        $filamentFromHtml = false;
+        $statamicFromHtml = false;
 
         try {
             // Fetch the main page
@@ -90,6 +94,9 @@ class LaravelDetectorService
             if ($this->detectBreezeJetstream($html)) {
                 $indicators['breezeJetstream'] = true;
             }
+
+            $filamentFromHtml = $this->detectFilamentFromHtml($html);
+            $statamicFromHtml = $this->detectStatamicFromHtml($html);
 
             // Check cookies
             foreach ($cookies as $cookie) {
@@ -163,6 +170,8 @@ class LaravelDetectorService
             $indicators['laravelTools'] = $parallelChecks['laravelTools']['detected'];
             $detectedTools = $parallelChecks['laravelTools']['tools'];
             $indicators['mixManifest'] = $parallelChecks['mixManifest'];
+            $indicators['filament'] = $filamentFromHtml || $parallelChecks['filament'];
+            $indicators['statamic'] = $statamicFromHtml || $parallelChecks['statamic'];
             $indicators['upEndpoint'] = $parallelChecks['upEndpoint'];
 
         } catch (\Exception $e) {
@@ -289,7 +298,7 @@ class LaravelDetectorService
 
         // Laravel tools detection is an extremely strong indicator
         // If any Laravel tools are found, it's almost certainly a Laravel app
-        if ($indicators['laravelTools']) {
+        if ($indicators['laravelTools'] || $indicators['filament'] || $indicators['statamic']) {
             $emoji = '🎯';
             $message = 'Highly likely Laravel!';
             $cssClass = 'success';
@@ -513,7 +522,7 @@ class LaravelDetectorService
     private function calculatePercentage(int $score, array $indicators, string $confidenceLevel): int
     {
         // If we detected Laravel tools, Laravel 404 page, Inertia, or Livewire, confidence should be very high
-        if ($indicators['laravelTools'] || $indicators['laravel404'] || $indicators['inertia'] || $indicators['livewire']) {
+        if ($indicators['laravelTools'] || $indicators['filament'] || $indicators['statamic'] || $indicators['laravel404'] || $indicators['inertia'] || $indicators['livewire']) {
             // Base high confidence, adjusted by total indicators found
             return min(95, 85 + ($score * 2));
         }
@@ -536,7 +545,14 @@ class LaravelDetectorService
      * Run multiple independent checks in parallel for better performance.
      *
      * @param  string  $url  The base URL to check
-     * @return array{laravel404: array{detected: bool, status: string}, laravelTools: array{detected: bool, tools: array<string>}, mixManifest: bool, upEndpoint: bool}
+     * @return array{
+     *     laravel404: array{detected: bool, status: string},
+     *     laravelTools: array{detected: bool, tools: array<string>},
+     *     mixManifest: bool,
+     *     filament: bool,
+     *     statamic: bool,
+     *     upEndpoint: bool
+     * }
      */
     private function runParallelChecks(string $url): array
     {
@@ -545,9 +561,23 @@ class LaravelDetectorService
         $testUrl404 = rtrim($url, '/').$randomPath;
         $testUrlUp = rtrim($url, '/').'/up';
         $mixManifestUrl = rtrim($url, '/').'/mix-manifest.json';
+        $filamentLoginUrl = rtrim($url, '/').'/filament/login';
+        $adminLoginUrl = rtrim($url, '/').'/admin/login';
+        $statamicCpUrl = rtrim($url, '/').'/cp';
 
         // Build pool of requests (Note: pool returns numeric indices, not named keys)
-        [$response404, $responseUp, $responseMixManifest, $responseTelescope, $responseHorizon, $responseNova, $responsePulse] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $mixManifestUrl, $url) {
+        [
+            $response404,
+            $responseUp,
+            $responseMixManifest,
+            $responseTelescope,
+            $responseHorizon,
+            $responseNova,
+            $responsePulse,
+            $responseFilamentLogin,
+            $responseAdminLogin,
+            $responseStatamicCp,
+        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $mixManifestUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
@@ -564,6 +594,11 @@ class LaravelDetectorService
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/horizon'),
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/nova'),
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/pulse'),
+                // Filament checks
+                $pool->timeout(3)->withHeaders($headers)->get($filamentLoginUrl),
+                $pool->timeout(3)->withHeaders($headers)->get($adminLoginUrl),
+                // Statamic check
+                $pool->timeout(3)->withHeaders($headers)->get($statamicCpUrl),
             ];
         });
 
@@ -634,6 +669,9 @@ class LaravelDetectorService
             // Ignore error
         }
 
+        $filamentDetected = $this->detectFilamentFromResponses([$responseFilamentLogin, $responseAdminLogin]);
+        $statamicDetected = $this->detectStatamicFromResponses([$responseStatamicCp]);
+
         return [
             'laravel404' => $laravel404,
             'laravelTools' => [
@@ -641,6 +679,8 @@ class LaravelDetectorService
                 'tools' => $detectedTools,
             ],
             'mixManifest' => $mixManifestDetected,
+            'filament' => $filamentDetected,
+            'statamic' => $statamicDetected,
             'upEndpoint' => $upEndpointDetected,
         ];
     }
@@ -728,5 +768,139 @@ class LaravelDetectorService
         $parsed = parse_url($baseUrl);
 
         return ($parsed['scheme'] ?? 'https').'://'.($parsed['host'] ?? '').'/favicon.ico';
+    }
+
+    /**
+     * Detect Filament from HTML content.
+     *
+     * @param  string  $html  The HTML content
+     * @return bool True if Filament is detected
+     */
+    private function detectFilamentFromHtml(string $html): bool
+    {
+        $lower = strtolower($html);
+
+        // Check for Filament asset URLs
+        $hasFilamentAssets = str_contains($lower, '/vendor/filament/')
+            || str_contains($lower, '/filament/assets/')
+            || preg_match('/filament[\/\-]assets/i', $html);
+
+        // Check for Filament-specific HTML identifiers
+        $hasFilamentId = str_contains($lower, 'id="filament"')
+            || str_contains($lower, "id='filament'");
+
+        // Check for Filament CSS classes
+        $hasFilamentClasses = preg_match('/class=["\'][^"\']*filament-/i', $html)
+            || str_contains($lower, 'filament-');
+
+        // Check for Livewire components with Filament prefix
+        $hasFilamentLivewire = str_contains($lower, '<livewire:filament')
+            || str_contains($lower, 'wire:id="filament');
+
+        return $hasFilamentAssets || $hasFilamentId || $hasFilamentClasses || $hasFilamentLivewire;
+    }
+
+    /**
+     * Detect Statamic from HTML content.
+     *
+     * @param  string  $html  The HTML content
+     * @return bool True if Statamic is detected
+     */
+    private function detectStatamicFromHtml(string $html): bool
+    {
+        $lower = strtolower($html);
+
+        // Check for Statamic generator meta tag
+        $hasGeneratorTag = str_contains($lower, '<meta name="generator"')
+            && str_contains($lower, 'statamic');
+
+        // Check for Statamic asset paths
+        $hasStatamicAssets = str_contains($lower, '/vendor/statamic/')
+            || str_contains($lower, 'statamic/')
+            || preg_match('/statamic[\/\-]assets/i', $html);
+
+        return $hasGeneratorTag || $hasStatamicAssets;
+    }
+
+    /**
+     * Detect Filament from HTTP responses (login pages).
+     *
+     * @param  array<int, \Illuminate\Http\Client\Response|\Illuminate\Http\Client\ConnectionException>  $responses  Array of HTTP responses
+     * @return bool True if Filament is detected
+     */
+    private function detectFilamentFromResponses(array $responses): bool
+    {
+        foreach ($responses as $response) {
+            if (! ($response instanceof \Illuminate\Http\Client\Response)) {
+                continue;
+            }
+
+            try {
+                // Check if response is successful (200) and contains Filament indicators
+                if ($response->successful()) {
+                    $body = strtolower($response->body());
+
+                    // Filament login pages typically contain these indicators
+                    $hasFilamentTitle = str_contains($body, 'filament')
+                        && (str_contains($body, 'login') || str_contains($body, 'admin'));
+
+                    $hasFilamentAssets = str_contains($body, '/vendor/filament/')
+                        || str_contains($body, '/filament/assets/');
+
+                    $hasFilamentId = str_contains($body, 'id="filament"')
+                        || str_contains($body, "id='filament'");
+
+                    if ($hasFilamentTitle || $hasFilamentAssets || $hasFilamentId) {
+                        return true;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Ignore errors for individual responses
+                continue;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect Statamic from HTTP responses (control panel).
+     *
+     * @param  array<int, \Illuminate\Http\Client\Response|\Illuminate\Http\Client\ConnectionException>  $responses  Array of HTTP responses
+     * @return bool True if Statamic is detected
+     */
+    private function detectStatamicFromResponses(array $responses): bool
+    {
+        foreach ($responses as $response) {
+            if (! ($response instanceof \Illuminate\Http\Client\Response)) {
+                continue;
+            }
+
+            try {
+                // Check if response is successful (200) and contains Statamic indicators
+                if ($response->successful()) {
+                    $body = strtolower($response->body());
+
+                    // Statamic control panel typically contains these indicators
+                    $hasStatamicTitle = str_contains($body, 'statamic')
+                        && (str_contains($body, 'control panel') || str_contains($body, 'cp'));
+
+                    $hasStatamicMeta = str_contains($body, '<meta name="generator"')
+                        && str_contains($body, 'statamic');
+
+                    $hasStatamicAssets = str_contains($body, '/vendor/statamic/')
+                        || str_contains($body, 'statamic/');
+
+                    if ($hasStatamicTitle || $hasStatamicMeta || $hasStatamicAssets) {
+                        return true;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Ignore errors for individual responses
+                continue;
+            }
+        }
+
+        return false;
     }
 }

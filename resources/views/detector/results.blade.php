@@ -200,6 +200,8 @@
                                     ['Laravel 404 page', $result['indicators']['laravel404']],
                                     ['/up health check', $result['indicators']['upEndpoint']],
                                     ['Telescope / Horizon / Nova / Pulse', $result['indicators']['laravelTools']],
+                                    ['Filament', $result['indicators']['filament']],
+                                    ['Statamic', $result['indicators']['statamic']],
                                 ];
                             @endphp
                             
@@ -228,7 +230,7 @@
                             This tool analyzes various indicators to detect if a website is built with Laravel. 
                             We check for Laravel-specific cookies, CSRF tokens, build tools like Vite, modern 
                             frameworks like Inertia.js and Livewire, Laravel tools (Telescope, Horizon, Nova, Pulse), 
-                            and the <code class="bg-blue-100 px-1 rounded">/up</code> health check endpoint.
+                            admin panels (Filament, Statamic), and the <code class="bg-blue-100 px-1 rounded">/up</code> health check endpoint.
                         </p>
                         <p class="text-gray-700 text-sm leading-relaxed">
                             <strong>Note:</strong> Some Laravel sites may use custom configurations that hide these indicators, 
