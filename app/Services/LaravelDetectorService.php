@@ -163,9 +163,15 @@ class LaravelDetectorService
         } catch (\Exception $e) {
             Log::error('Laravel detection error: '.$e->getMessage());
 
+            $errorMessage = $e->getMessage();
+
+            if (str_contains($errorMessage, 'cURL error 28')) {
+                $errorMessage = 'Request timed out. This website may be blocking automated detection.';
+            }
+
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $errorMessage,
                 'url' => $url,
             ];
         }

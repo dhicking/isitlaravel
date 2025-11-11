@@ -346,6 +346,23 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertArrayHasKey('error', $result);
     }
 
+    public function test_handles_timeout_error_with_friendly_message(): void
+    {
+        Http::fake([
+            'https://example.com' => function () {
+                throw new \Exception('cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received');
+            },
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals(
+            'Request timed out. This website may be blocking automated detection.',
+            $result['error']
+        );
+    }
+
     public function test_calculates_high_confidence_with_multiple_indicators(): void
     {
         Http::fake([
