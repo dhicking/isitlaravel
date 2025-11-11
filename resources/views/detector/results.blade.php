@@ -80,64 +80,6 @@
                 </div>
             </div>
 
-            <!-- Special Features Found -->
-            @if($result['inertiaComponent'] || $result['livewireCount'] > 0 || !empty($result['detectedTools']))
-                <div class="grid gap-4 mb-6">
-                    @if($result['inertiaComponent'])
-                        <div class="bg-white rounded-xl border border-blue-200 p-4">
-                            <div class="flex items-start gap-3">
-                                <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
-                                    <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-900 text-sm mb-1">Inertia.js Component Detected</div>
-                                    <code class="text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded">{{ $result['inertiaComponent'] }}</code>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($result['livewireCount'] > 0)
-                        <div class="bg-white rounded-xl border border-purple-200 p-4">
-                            <div class="flex items-start gap-3">
-                                <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
-                                    <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.06-4.09l-2.6-1.53C16.17 17.98 14.21 19 12 19z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-900 text-sm mb-1">Livewire Components Detected</div>
-                                    <span class="text-xs text-purple-700">{{ $result['livewireCount'] }} component{{ $result['livewireCount'] !== 1 ? 's' : '' }} found on page</span>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if(!empty($result['detectedTools']))
-                        <div class="bg-white rounded-xl border border-orange-200 p-4">
-                            <div class="flex items-start gap-3">
-                                <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
-                                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-900 text-sm mb-2">Laravel Tools Detected</div>
-                                    <div class="flex flex-wrap gap-2">
-                                        @foreach($result['detectedTools'] as $tool)
-                                            <span class="text-xs bg-orange-50 text-orange-800 px-3 py-1 rounded-full font-medium">{{ $tool }}</span>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            @endif
-
             <!-- Share Result -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Share Your Result</h3>
@@ -221,6 +163,64 @@ Find out other sites built with Laravel at isit.laravel.cloud
                     </p>
                 </div>
             </div>
+
+            <!-- Special Features Found -->
+            @if($result['inertiaComponent'] || $result['livewireCount'] > 0 || !empty($result['detectedTools']))
+                <div class="grid gap-4 mb-6">
+                    @if($result['inertiaComponent'])
+                        <div class="bg-white rounded-xl border border-blue-200 p-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                                    <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900 text-sm mb-1">Inertia.js Component Detected</div>
+                                    <code class="text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded">{{ $result['inertiaComponent'] }}</code>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($result['livewireCount'] > 0)
+                        <div class="bg-white rounded-xl border border-purple-200 p-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                                    <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.06-4.09l-2.6-1.53C16.17 17.98 14.21 19 12 19z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900 text-sm mb-1">Livewire Components Detected</div>
+                                    <span class="text-xs text-purple-700">{{ $result['livewireCount'] }} component{{ $result['livewireCount'] !== 1 ? 's' : '' }} found on page</span>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if(!empty($result['detectedTools']))
+                        <div class="bg-white rounded-xl border border-orange-200 p-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900 text-sm mb-2">Laravel Tools Detected</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($result['detectedTools'] as $tool)
+                                            <span class="text-xs bg-orange-50 text-orange-800 px-3 py-1 rounded-full font-medium">{{ $tool }}</span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             <!-- Detection Indicators -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-6">
