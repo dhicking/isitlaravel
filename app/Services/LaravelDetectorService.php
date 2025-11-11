@@ -159,13 +159,19 @@ class LaravelDetectorService
 
             // Check for Inertia.js
             if ($this->containsPattern($html, 'data-page')) {
-                $indicators['inertia'] = true;
-                // Try to extract component name
+                // Try to extract component name and check for Laravel-specific patterns
                 if (preg_match('/data-page=["\']([^"\']+)["\']/', $html, $matches)) {
                     $pageData = json_decode(html_entity_decode($matches[1]), true);
                     if (isset($pageData['component'])) {
                         $inertiaComponent = $pageData['component'];
                     }
+
+                    // Check if Inertia data contains Laravel-specific indicators
+                    $hasLaravelInertia = $this->detectLaravelInertia($pageData, $html);
+                    $indicators['inertia'] = $hasLaravelInertia;
+                } else {
+                    // If we can't parse data-page, just mark as detected (less reliable)
+                    $indicators['inertia'] = true;
                 }
             }
 
@@ -346,9 +352,10 @@ class LaravelDetectorService
             $cssClass = 'success';
             $level = 'certain';
         }
-        // Laravel tools detection is an extremely strong indicator
-        // If any Laravel tools are found, it's almost certainly a Laravel app
-        elseif ($indicators['laravel404'] || $indicators['inertia']) {
+        // Laravel 404 page is a strong indicator
+        // Inertia.js alone is not definitive (works with Rails, Django, etc.)
+        // but combined with other indicators it's very likely Laravel
+        elseif ($indicators['laravel404']) {
             $emoji = '🎯';
             $message = 'Highly likely Laravel!';
             $cssClass = 'success';
@@ -604,9 +611,15 @@ class LaravelDetectorService
             return 100;
         }
 
-        // If we detected Laravel 404 page or Inertia, confidence should be very high
-        if ($indicators['laravel404'] || $indicators['inertia']) {
+        // If we detected Laravel 404 page, confidence should be very high
+        if ($indicators['laravel404']) {
             return min(95, 85 + ($score * 2));
+        }
+
+        // Inertia.js alone is not definitive (framework-agnostic)
+        // but it's a strong indicator when combined with other Laravel signs
+        if ($indicators['inertia'] && $score >= 2) {
+            return min(90, 75 + ($score * 3));
         }
 
         // High confidence - should be in the 75-95% range
@@ -734,12 +747,25 @@ class LaravelDetectorService
                 // This is a strong indicator that the Laravel tool is installed
                 if (in_array($status, [401, 403])) {
                     $detectedTools[] = $toolName;
+
+                    continue;
                 }
 
-                // Also check if we get a 200 and the response contains tool-specific indicators
+                // For 200 responses, check for tool-specific signatures instead of generic keywords
                 if ($status === 200) {
-                    $html = strtolower($toolResponse->body());
-                    if (stripos($html, $toolPath) !== false || stripos($html, 'laravel') !== false || stripos($html, $toolName) !== false) {
+                    $html = $toolResponse->body();
+                    $lowerHtml = strtolower($html);
+
+                    // Check for tool-specific signatures
+                    $isDetected = match ($toolPath) {
+                        'telescope' => $this->detectTelescopeSignature($html, $lowerHtml),
+                        'horizon' => $this->detectHorizonSignature($html, $lowerHtml),
+                        'nova' => $this->detectNovaSignature($html, $lowerHtml),
+                        'pulse' => $this->detectPulseSignature($html, $lowerHtml),
+                        default => false,
+                    };
+
+                    if ($isDetected) {
                         $detectedTools[] = $toolName;
                     }
                 }
@@ -1001,6 +1027,154 @@ class LaravelDetectorService
         }
 
         return false;
+    }
+
+    /**
+     * Detect Laravel Telescope by looking for specific signatures.
+     */
+    private function detectTelescopeSignature(string $html, string $lowerHtml): bool
+    {
+        // Telescope-specific asset paths
+        $hasTelescopeAssets = str_contains($lowerHtml, '/telescope/app.js')
+            || str_contains($lowerHtml, '/telescope/app.css')
+            || str_contains($lowerHtml, '/vendor/telescope/')
+            || preg_match('/telescope[\/\-]assets/i', $html);
+
+        // Telescope-specific HTML structure
+        $hasTelescopeStructure = str_contains($lowerHtml, 'id="telescope"')
+            || str_contains($lowerHtml, 'data-telescope')
+            || str_contains($lowerHtml, 'telescope-app');
+
+        // Telescope-specific JavaScript
+        $hasTelescopeJs = str_contains($lowerHtml, 'window.telescope')
+            || str_contains($lowerHtml, 'laravel.telescope');
+
+        // Require at least 2 indicators to reduce false positives
+        $indicators = [$hasTelescopeAssets, $hasTelescopeStructure, $hasTelescopeJs];
+        $matchCount = count(array_filter($indicators));
+
+        return $matchCount >= 2;
+    }
+
+    /**
+     * Detect Laravel Horizon by looking for specific signatures.
+     */
+    private function detectHorizonSignature(string $html, string $lowerHtml): bool
+    {
+        // Horizon-specific asset paths
+        $hasHorizonAssets = str_contains($lowerHtml, '/horizon/app.js')
+            || str_contains($lowerHtml, '/horizon/app.css')
+            || str_contains($lowerHtml, '/vendor/horizon/')
+            || preg_match('/horizon[\/\-]assets/i', $html);
+
+        // Horizon-specific HTML structure
+        $hasHorizonStructure = str_contains($lowerHtml, 'id="horizon"')
+            || str_contains($lowerHtml, 'data-horizon')
+            || str_contains($lowerHtml, 'horizon-app');
+
+        // Horizon-specific JavaScript
+        $hasHorizonJs = str_contains($lowerHtml, 'window.horizon')
+            || str_contains($lowerHtml, 'laravel.horizon');
+
+        // Require at least 2 indicators to reduce false positives
+        $indicators = [$hasHorizonAssets, $hasHorizonStructure, $hasHorizonJs];
+        $matchCount = count(array_filter($indicators));
+
+        return $matchCount >= 2;
+    }
+
+    /**
+     * Detect Laravel Nova by looking for specific signatures.
+     */
+    private function detectNovaSignature(string $html, string $lowerHtml): bool
+    {
+        // Nova-specific asset paths
+        $hasNovaAssets = str_contains($lowerHtml, '/nova/app.js')
+            || str_contains($lowerHtml, '/nova/app.css')
+            || str_contains($lowerHtml, '/vendor/nova/')
+            || preg_match('/nova[\/\-]assets/i', $html);
+
+        // Nova-specific HTML structure
+        $hasNovaStructure = str_contains($lowerHtml, 'id="nova"')
+            || str_contains($lowerHtml, 'data-nova')
+            || str_contains($lowerHtml, 'nova-app')
+            || str_contains($lowerHtml, 'nova-dashboard');
+
+        // Nova-specific JavaScript
+        $hasNovaJs = str_contains($lowerHtml, 'window.nova')
+            || str_contains($lowerHtml, 'laravel.nova');
+
+        // Require at least 2 indicators to reduce false positives
+        $indicators = [$hasNovaAssets, $hasNovaStructure, $hasNovaJs];
+        $matchCount = count(array_filter($indicators));
+
+        return $matchCount >= 2;
+    }
+
+    /**
+     * Detect Laravel Pulse by looking for specific signatures.
+     */
+    private function detectPulseSignature(string $html, string $lowerHtml): bool
+    {
+        // Pulse-specific asset paths
+        $hasPulseAssets = str_contains($lowerHtml, '/pulse/app.js')
+            || str_contains($lowerHtml, '/pulse/app.css')
+            || str_contains($lowerHtml, '/vendor/pulse/')
+            || preg_match('/pulse[\/\-]assets/i', $html);
+
+        // Pulse-specific HTML structure (Livewire-based)
+        $hasPulseStructure = str_contains($lowerHtml, 'id="pulse"')
+            || str_contains($lowerHtml, 'data-pulse')
+            || str_contains($lowerHtml, 'pulse-dashboard')
+            || (str_contains($lowerHtml, 'livewire:pulse') && str_contains($lowerHtml, 'pulse'));
+
+        // Pulse-specific JavaScript
+        $hasPulseJs = str_contains($lowerHtml, 'window.pulse')
+            || str_contains($lowerHtml, 'laravel.pulse');
+
+        // Require at least 2 indicators to reduce false positives
+        $indicators = [$hasPulseAssets, $hasPulseStructure, $hasPulseJs];
+        $matchCount = count(array_filter($indicators));
+
+        return $matchCount >= 2;
+    }
+
+    /**
+     * Detect if Inertia.js is being used with Laravel by checking for Laravel-specific patterns.
+     *
+     * Inertia.js is framework-agnostic (works with Laravel, Rails, Django, etc.),
+     * so we need to look for Laravel-specific indicators in the Inertia setup.
+     */
+    private function detectLaravelInertia(?array $pageData, string $html): bool
+    {
+        // If we can't parse the data-page, we can't be sure it's Laravel
+        if (! is_array($pageData)) {
+            return false;
+        }
+
+        $lowerHtml = strtolower($html);
+
+        // Check for Laravel-specific patterns in Inertia setup
+        // 1. Laravel CSRF token handling in Inertia
+        $hasLaravelCsrf = str_contains($lowerHtml, 'x-csrf-token')
+            || str_contains($lowerHtml, 'x-inertia')
+            || (isset($pageData['props']) && is_array($pageData['props']) && isset($pageData['props']['_token']));
+
+        // 2. Laravel asset paths combined with Inertia
+        $hasLaravelAssets = str_contains($lowerHtml, '/build/')
+            || str_contains($lowerHtml, '@vite')
+            || str_contains($lowerHtml, 'laravel-mix');
+
+        // 3. Laravel-specific error handling in Inertia responses
+        $hasLaravelErrors = isset($pageData['props']['errors'])
+            || isset($pageData['props']['flash']);
+
+        // 4. Check if Inertia is combined with other Laravel indicators we've already detected
+        // (This will be checked at the confidence level, not here)
+
+        // Require at least one Laravel-specific indicator
+        // If none are found, Inertia could be from Rails, Django, etc.
+        return $hasLaravelCsrf || $hasLaravelAssets || $hasLaravelErrors;
     }
 
     /**
