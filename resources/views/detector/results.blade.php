@@ -236,10 +236,10 @@
                     $emptyBlocks = 5 - $filledBlocks;
                     $confidenceMeter = str_repeat('🟥', $filledBlocks) . str_repeat('⬜', $emptyBlocks);
                     
-                    // Generate share text
-                    $emoji = $result['percentage'] >= 70 ? '✅' : ($result['percentage'] >= 30 ? '❓' : '❌');
+                    // Generate share text using confidence message
                     $domain = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
-                    $shareText = "{$emoji} {$domain} is {$result['percentage']}% Laravel!\n{$confidenceMeter}\n\nFind out other sites built with Laravel at isit.laravel.cloud\n\n#laravel";
+                    $confidenceMessage = $result['confidence']['message'];
+                    $shareText = "{$result['confidence']['emoji']} {$domain}: {$confidenceMessage}\n{$confidenceMeter}\n\nFind out other sites built with Laravel at isit.laravel.cloud\n\n#laravel";
                     
                     // Twitter/X share URL
                     $twitterUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($shareText);
@@ -251,7 +251,7 @@
                 <div class="max-w-lg mx-auto">
                     <!-- Preview -->
                     <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                        <div class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $emoji }} {{ $domain }} is {{ $result['percentage'] }}% Laravel!
+                        <div class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $result['confidence']['emoji'] }} {{ $domain }}: {{ $confidenceMessage }}
 {{ $confidenceMeter }}
 
 Find out other sites built with Laravel at isit.laravel.cloud
