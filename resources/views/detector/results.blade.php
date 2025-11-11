@@ -117,7 +117,7 @@
                     // Generate share text using confidence message (include shareable link)
                     $domainDisplay = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
                     $confidenceMessage = $result['confidence']['message'];
-                    $shareText = "{$result['confidence']['emoji']} {$domainDisplay}: {$confidenceMessage}\n{$confidenceMeter}\n\n{$shareableUrl}\n\nDiscover other sites built with Laravel at isit.laravel.cloud";
+                    $shareText = "{$result['confidence']['emoji']} {$domainDisplay}: {$confidenceMessage}\n{$confidenceMeter}\n\n{$shareableUrl}\n\nDiscover other sites built with Laravel at https://isit.laravel.cloud";
                     
                     // Twitter/X share URL
                     $twitterUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($shareText);
@@ -134,7 +134,7 @@
 
 {{ $shareableUrl }}
 
-Discover other sites built with Laravel at isit.laravel.cloud</div>
+Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                     </div>
                     
                     <!-- Share Buttons -->
