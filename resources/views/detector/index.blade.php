@@ -25,12 +25,15 @@
                 
                 <div class="flex gap-3 mb-4">
                     <input 
-                        type="text" 
+                        type="url" 
                         name="url" 
                         id="url" 
                         class="flex-1 px-5 py-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-lg"
                         placeholder="https://example.com"
                         value="{{ old('url') }}"
+                        spellcheck="false"
+                        autocorrect="off"
+                        autocapitalize="off"
                         required
                         autofocus
                     >
