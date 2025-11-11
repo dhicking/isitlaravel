@@ -1,0 +1,39 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&amp;family=Instrument+Sans:wght@400;500&amp;display=swap');
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#ffffff"/>
+  
+  <!-- Main Title -->
+  <text 
+    x="600" 
+    y="280" 
+    font-family="'Instrument Serif', serif" 
+    font-size="120" 
+    font-style="italic"
+    font-weight="400"
+    fill="#1f2937" 
+    text-anchor="middle"
+    letter-spacing="2">
+    Is It Laravel?
+  </text>
+  
+  <!-- Subtitle -->
+  <text 
+    x="600" 
+    y="380" 
+    font-family="'Instrument Sans', sans-serif" 
+    font-size="32" 
+    font-weight="400"
+    fill="#6b7280" 
+    text-anchor="middle">
+    Detect if any website is built with Laravel
+  </text>
+  
+  <!-- Laravel Red Accent Line -->
+  <line x1="400" y1="450" x2="800" y2="450" stroke="#FF2D20" stroke-width="3" stroke-linecap="round"/>
+</svg>
