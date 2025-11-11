@@ -9,7 +9,7 @@
     <!-- OpenGraph Meta Tags -->
     <meta property="og:title" content="@yield('og_title', 'Is It Laravel?')">
     <meta property="og:description" content="@yield('og_description', 'Detect if any website is built with Laravel. We check cookies, CSRF tokens, build tools, and more.')">
-    <meta property="og:image" content="{{ asset('og-image.svg') }}">
+    <meta property="og:image" content="{{ asset('og-image.png') }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:type" content="website">
     
@@ -17,7 +17,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="@yield('og_title', 'Is It Laravel?')">
     <meta name="twitter:description" content="@yield('og_description', 'Detect if any website is built with Laravel. We check cookies, CSRF tokens, build tools, and more.')">
-    <meta name="twitter:image" content="{{ asset('og-image.svg') }}">
+    <meta name="twitter:image" content="{{ asset('og-image.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
