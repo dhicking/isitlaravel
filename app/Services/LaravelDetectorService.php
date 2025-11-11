@@ -34,10 +34,11 @@ class LaravelDetectorService
 
         // Generate cache key based on normalized URL
         $cacheKey = 'laravel_detection:'.md5($url);
+        $cache = Cache::store($this->cacheStore());
 
         // Return cached result if available and not forcing refresh
         if (! $forceRefresh) {
-            $cached = Cache::get($cacheKey);
+            $cached = $cache->get($cacheKey);
             if ($cached !== null) {
                 $cached['cached'] = true;
 
@@ -212,7 +213,7 @@ class LaravelDetectorService
             ];
 
             // Cache errors for a shorter period (5 minutes) to avoid hammering failing sites
-            Cache::put($cacheKey, $errorResult, now()->addMinutes(5));
+            Cache::store($this->cacheStore())->put($cacheKey, $errorResult, now()->addMinutes(5));
 
             return $errorResult;
         }
@@ -243,7 +244,7 @@ class LaravelDetectorService
         ];
 
         // Cache the result
-        Cache::put($cacheKey, $result, now()->addMinutes(self::CACHE_TTL_MINUTES));
+        $cache->put($cacheKey, $result, now()->addMinutes(self::CACHE_TTL_MINUTES));
 
         return $result;
     }
@@ -951,5 +952,19 @@ class LaravelDetectorService
         }
 
         return false;
+    }
+
+    /**
+     * Determine which cache store should be used for detector results.
+     */
+    private function cacheStore(): string
+    {
+        $default = config('cache.default', 'file');
+
+        if ($default === 'database') {
+            return 'file';
+        }
+
+        return $default;
     }
 }
