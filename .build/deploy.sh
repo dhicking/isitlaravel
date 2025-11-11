@@ -6,11 +6,11 @@ echo "🚀 Starting deployment..."
 
 # Install PHP dependencies with optimized autoloader
 echo "📦 Installing PHP dependencies..."
-composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 # Install and build frontend assets
 echo "🎨 Building frontend assets..."
-npm ci
+npm ci --audit false
 npm run build
 
 # Clear and cache configuration
