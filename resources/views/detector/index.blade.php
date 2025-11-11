@@ -13,9 +13,6 @@
             <p class="text-lg md:text-xl text-gray-600 mb-2">
                 Detect if any website is built with Laravel
             </p>
-            <p class="text-sm text-gray-500">
-                We check cookies, CSRF tokens, build tools, and more
-            </p>
         </div>
 
         <!-- Search Form -->
