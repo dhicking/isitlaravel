@@ -27,26 +27,29 @@
     <meta name="twitter:image" content="{{ asset('og-image.png') }}">
     
     <!-- JSON-LD Structured Data -->
+    @php
+        $jsonLd = json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'WebApplication',
+            'name' => 'Is It Laravel?',
+            'description' => 'Detect if any website is built with Laravel. We check cookies, CSRF tokens, build tools, and more.',
+            'url' => url('/'),
+            'applicationCategory' => 'DeveloperApplication',
+            'operatingSystem' => 'Web',
+            'offers' => [
+                '@type' => 'Offer',
+                'price' => '0',
+                'priceCurrency' => 'USD',
+            ],
+            'author' => [
+                '@type' => 'Person',
+                'name' => 'Dave Hicking',
+                'url' => 'https://davehicking.com',
+            ],
+        ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    @endphp
     <script type="application/ld+json">
-    {!! json_encode([
-        '@context' => 'https://schema.org',
-        '@type' => 'WebApplication',
-        'name' => 'Is It Laravel?',
-        'description' => 'Detect if any website is built with Laravel. We check cookies, CSRF tokens, build tools, and more.',
-        'url' => url('/'),
-        'applicationCategory' => 'DeveloperApplication',
-        'operatingSystem' => 'Web',
-        'offers' => [
-            '@type' => 'Offer',
-            'price' => '0',
-            'priceCurrency' => 'USD',
-        ],
-        'author' => [
-            '@type' => 'Person',
-            'name' => 'Dave Hicking',
-            'url' => 'https://davehicking.com',
-        ],
-    ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    {!! $jsonLd !!}
     </script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
