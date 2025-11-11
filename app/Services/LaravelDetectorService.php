@@ -282,6 +282,14 @@ class LaravelDetectorService
             $cssClass = 'success';
             $level = 'high';
         }
+        // Laravel 404 page is extremely specific to Laravel
+        // It's a dead giveaway that this is a Laravel application
+        elseif ($indicators['laravel404']) {
+            $emoji = '🎯';
+            $message = 'Highly likely Laravel!';
+            $cssClass = 'success';
+            $level = 'high';
+        }
         // Inertia and Livewire are also Laravel-specific frameworks
         elseif ($indicators['inertia'] || $indicators['livewire']) {
             $emoji = '🎯';
@@ -491,8 +499,8 @@ class LaravelDetectorService
      */
     private function calculatePercentage(int $score, array $indicators, string $confidenceLevel): int
     {
-        // If we detected Laravel tools, Inertia, or Livewire, confidence should be very high
-        if ($indicators['laravelTools'] || $indicators['inertia'] || $indicators['livewire']) {
+        // If we detected Laravel tools, Laravel 404 page, Inertia, or Livewire, confidence should be very high
+        if ($indicators['laravelTools'] || $indicators['laravel404'] || $indicators['inertia'] || $indicators['livewire']) {
             // Base high confidence, adjusted by total indicators found
             return min(95, 85 + ($score * 2));
         }
