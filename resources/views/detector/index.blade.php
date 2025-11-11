@@ -32,7 +32,7 @@
                             type="text" 
                             name="url" 
                             id="url" 
-                            class="w-full px-5 py-4 border-2 border-gray-300 rounded-lg focus:ring-4 focus:ring-red-500 focus:ring-offset-2 focus:border-transparent transition-all text-lg outline-none"
+                            class="w-full px-5 py-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:border-transparent transition-all text-lg outline-none"
                             placeholder="laravel.com"
                             value="{{ old('url') }}"
                             spellcheck="false"
