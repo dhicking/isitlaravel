@@ -138,6 +138,90 @@
                 </div>
             @endif
 
+            <!-- Share Result -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Share Your Result</h3>
+                
+                @php
+                    // Generate confidence meter using emoji blocks
+                    $filledBlocks = round($result['percentage'] / 20);
+                    $emptyBlocks = 5 - $filledBlocks;
+                    $confidenceMeter = str_repeat('🟥', $filledBlocks) . str_repeat('⬜', $emptyBlocks);
+                    
+                    // Generate share text using confidence message
+                    $domain = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
+                    $confidenceMessage = $result['confidence']['message'];
+                    $shareText = "{$result['confidence']['emoji']} {$domain}: {$confidenceMessage}\n{$confidenceMeter}\n\nFind out other sites built with Laravel at isit.laravel.cloud\n\n#laravel";
+                    
+                    // Twitter/X share URL
+                    $twitterUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($shareText);
+                    
+                    // Bluesky share URL
+                    $blueskyUrl = 'https://bsky.app/intent/compose?text=' . urlencode($shareText);
+                @endphp
+                
+                <div class="max-w-lg mx-auto">
+                    <!-- Preview -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                        <div id="share-text-preview" data-share-text="{{ htmlspecialchars($shareText, ENT_QUOTES, 'UTF-8') }}" class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $result['confidence']['emoji'] }} {{ $domain }}: {{ $confidenceMessage }}
+{{ $confidenceMeter }}
+
+Find out other sites built with Laravel at isit.laravel.cloud
+
+#laravel</div>
+                    </div>
+                    
+                    <!-- Share Buttons -->
+                    <div class="grid gap-3 sm:grid-cols-[0.8fr_1.1fr_1.3fr]">
+                        <button 
+                            type="button"
+                            onclick="copyShareText()"
+                            id="copy-button"
+                            class="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-500 focus:ring-offset-2 text-gray-700 font-semibold rounded-lg transition-all outline-none text-sm sm:text-base whitespace-nowrap"
+                            aria-label="Copy share text to clipboard"
+                        >
+                            <svg id="copy-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            <svg id="check-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span id="copy-text">Copy</span>
+                        </button>
+                        
+                        <a 
+                            href="{{ $twitterUrl }}" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            class="flex items-center justify-center gap-2 px-4 py-2.5 bg-black hover:bg-gray-800 focus:ring-4 focus:ring-gray-500 focus:ring-offset-2 text-white font-semibold rounded-lg transition-all outline-none whitespace-nowrap"
+                            aria-label="Share on X (formerly Twitter)"
+                        >
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                            Share on 𝕏
+                        </a>
+                        
+                        <a 
+                            href="{{ $blueskyUrl }}" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:ring-blue-500 focus:ring-offset-2 text-white font-semibold rounded-lg transition-all outline-none whitespace-nowrap"
+                            aria-label="Share on Bluesky"
+                        >
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z"/>
+                            </svg>
+                            Share on Bluesky
+                        </a>
+                    </div>
+
+                    <p id="copy-feedback" class="mt-3 text-center text-xs text-green-600 hidden" role="status" aria-live="polite">
+                        Copied to clipboard!
+                    </p>
+                </div>
+            </div>
+
             <!-- Detection Indicators -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-6">Detection Indicators</h3>
@@ -249,70 +333,6 @@
                 </div>
             </div>
 
-            <!-- Share Result -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-                <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Share Your Result</h3>
-                
-                @php
-                    // Generate confidence meter using emoji blocks
-                    $filledBlocks = round($result['percentage'] / 20);
-                    $emptyBlocks = 5 - $filledBlocks;
-                    $confidenceMeter = str_repeat('🟥', $filledBlocks) . str_repeat('⬜', $emptyBlocks);
-                    
-                    // Generate share text using confidence message
-                    $domain = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
-                    $confidenceMessage = $result['confidence']['message'];
-                    $shareText = "{$result['confidence']['emoji']} {$domain}: {$confidenceMessage}\n{$confidenceMeter}\n\nFind out other sites built with Laravel at isit.laravel.cloud\n\n#laravel";
-                    
-                    // Twitter/X share URL
-                    $twitterUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($shareText);
-                    
-                    // Bluesky share URL
-                    $blueskyUrl = 'https://bsky.app/intent/compose?text=' . urlencode($shareText);
-                @endphp
-                
-                <div class="max-w-lg mx-auto">
-                    <!-- Preview -->
-                    <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                        <div class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $result['confidence']['emoji'] }} {{ $domain }}: {{ $confidenceMessage }}
-{{ $confidenceMeter }}
-
-Find out other sites built with Laravel at isit.laravel.cloud
-
-#laravel</div>
-                    </div>
-                    
-                    <!-- Share Buttons -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <a 
-                            href="{{ $twitterUrl }}" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            class="flex items-center justify-center gap-2 px-6 py-3 bg-black hover:bg-gray-800 focus:ring-4 focus:ring-gray-500 focus:ring-offset-2 text-white font-semibold rounded-lg transition-all outline-none"
-                            aria-label="Share on X (formerly Twitter)"
-                        >
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                            </svg>
-                            Share on 𝕏
-                        </a>
-                        
-                        <a 
-                            href="{{ $blueskyUrl }}" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            class="flex items-center justify-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:ring-blue-500 focus:ring-offset-2 text-white font-semibold rounded-lg transition-all outline-none"
-                            aria-label="Share on Bluesky"
-                        >
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z"/>
-                            </svg>
-                            Share on Bluesky
-                        </a>
-                    </div>
-                </div>
-            </div>
-
             <!-- Action Buttons -->
             <div class="flex gap-3 justify-center">
                 <a href="{{ route('home') }}" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-500 focus:ring-offset-2 text-gray-700 font-semibold rounded-lg transition-all outline-none">
@@ -334,4 +354,59 @@ Find out other sites built with Laravel at isit.laravel.cloud
         @endif
     </main>
 </div>
+
+<script>
+    function copyShareText() {
+        const preview = document.getElementById('share-text-preview');
+        // Get text from data attribute first (preserves line breaks), fallback to textContent
+        const text = preview.getAttribute('data-share-text') || preview.textContent || preview.innerText;
+        
+        const success = () => {
+            const copyIcon = document.getElementById('copy-icon');
+            const checkIcon = document.getElementById('check-icon');
+            const copyText = document.getElementById('copy-text');
+            const feedback = document.getElementById('copy-feedback');
+
+            copyIcon.classList.add('hidden');
+            checkIcon.classList.remove('hidden');
+            copyText.textContent = 'Copied!';
+            feedback.classList.remove('hidden');
+
+            setTimeout(function() {
+                copyIcon.classList.remove('hidden');
+                checkIcon.classList.add('hidden');
+                copyText.textContent = 'Copy';
+                feedback.classList.add('hidden');
+            }, 2000);
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text)
+                .then(success)
+                .catch(function() {
+                    fallbackCopy(text, success);
+                });
+        } else {
+            fallbackCopy(text, success);
+        }
+    }
+
+    function fallbackCopy(text, onSuccess) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+
+        try {
+            document.execCommand('copy');
+            onSuccess();
+        } catch (err) {
+            alert('Failed to copy text. Please select and copy manually.');
+        }
+
+        document.body.removeChild(textArea);
+    }
+</script>
 @endsection
