@@ -23,12 +23,12 @@
             <form action="{{ route('detect') }}" method="POST">
                 @csrf
                 
-                <div class="flex gap-3 mb-4">
+                <div class="flex gap-3 mb-4 w-full">
                     <input 
                         type="text" 
                         name="url" 
                         id="url" 
-                        class="flex-1 px-5 py-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-lg"
+                        class="flex-1 min-w-0 px-5 py-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-lg"
                         placeholder="laravel.com"
                         value="{{ old('url') }}"
                         spellcheck="false"
@@ -40,7 +40,7 @@
                     >
                     <button 
                         type="submit" 
-                        class="bg-laravel-red hover-laravel-red text-white font-semibold px-10 py-4 rounded-lg transition-all duration-200 whitespace-nowrap"
+                        class="bg-laravel-red hover-laravel-red text-white font-semibold px-6 sm:px-10 py-4 rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0"
                     >
                         Analyze
                     </button>
