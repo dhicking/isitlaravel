@@ -58,6 +58,45 @@
         .hover-laravel-red:hover {
             background-color: #e62915;
         }
+        
+        /* Screen reader only - visually hidden but accessible to assistive tech */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        /* Show on focus for skip links */
+        .sr-only:focus {
+            position: fixed;
+            width: auto;
+            height: auto;
+            padding: 0.5rem 1rem;
+            margin: 0;
+            overflow: visible;
+            clip: auto;
+            white-space: normal;
+            z-index: 9999;
+        }
+        
+        /* Ensure focus rings are visible */
+        *:focus-visible {
+            outline: 2px solid var(--color-laravel-red);
+            outline-offset: 2px;
+        }
+        
+        /* Remove default outline for elements with custom focus styles */
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible {
+            outline: none;
+        }
     </style>
 </head>
 <body class="bg-white min-h-screen">
