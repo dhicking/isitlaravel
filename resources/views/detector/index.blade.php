@@ -73,7 +73,7 @@
 
         <!-- Footer -->
         <div class="text-center text-sm text-gray-400">
-            <p>Built with <span class="laravel-red">❤</span> using Laravel</p>
+            <p>Built with <span class="laravel-red">❤</span> using Laravel by <a href="https://davehicking.com" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-900 transition-colors">Dave Hicking</a></p>
         </div>
     </div>
 </div>
