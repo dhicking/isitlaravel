@@ -226,6 +226,48 @@
                 </div>
             </div>
 
+            <!-- Share Result -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Share Your Result</h3>
+                
+                @php
+                    // Generate confidence meter using emoji blocks
+                    $filledBlocks = round($result['percentage'] / 20);
+                    $emptyBlocks = 5 - $filledBlocks;
+                    $confidenceMeter = str_repeat('🟥', $filledBlocks) . str_repeat('⬜', $emptyBlocks);
+                    
+                    // Generate tweet text
+                    $emoji = $result['percentage'] >= 70 ? '✅' : ($result['percentage'] >= 30 ? '❓' : '❌');
+                    $domain = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
+                    $tweetText = "{$emoji} {$domain} is {$result['percentage']}% Laravel!\n{$confidenceMeter}\n\nCheck if your site is Laravel at";
+                    $tweetUrl = url()->route('home');
+                    $shareUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($tweetText) . '&url=' . urlencode($tweetUrl) . '&hashtags=Laravel,WebDev';
+                @endphp
+                
+                <div class="max-w-lg mx-auto">
+                    <!-- Preview -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                        <div class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $emoji }} {{ $domain }} is {{ $result['percentage'] }}% Laravel!
+{{ $confidenceMeter }}
+
+Check if your site is Laravel at {{ parse_url($tweetUrl, PHP_URL_HOST) }} #Laravel #WebDev</div>
+                    </div>
+                    
+                    <!-- Share Button -->
+                    <a 
+                        href="{{ $shareUrl }}" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="flex items-center justify-center gap-2 w-full px-6 py-3 bg-black hover:bg-gray-800 text-white font-semibold rounded-lg transition-all"
+                    >
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                        Share on 𝕏
+                    </a>
+                </div>
+            </div>
+
             <!-- Action Buttons -->
             <div class="flex gap-3 justify-center">
                 <a href="{{ route('home') }}" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all">
