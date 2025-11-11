@@ -249,48 +249,36 @@ class LaravelDetectorService
      */
     private function getConfidence(int $score, array $indicators): array
     {
-        $details = '';
         $cssClass = '';
         $emoji = '';
         $message = '';
-
-        // Add details about what was found
-        if ($indicators['inertia']) {
-            $details .= ' with Inertia.js';
-        }
-        if ($indicators['livewire']) {
-            $details .= ' with Livewire';
-        }
-        if ($indicators['viteClient']) {
-            $details .= ' (Vite)';
-        }
 
         // Laravel tools detection is an extremely strong indicator
         // If any Laravel tools are found, it's almost certainly a Laravel app
         if ($indicators['laravelTools']) {
             $emoji = '🎯';
-            $message = "Highly likely Laravel{$details}!";
+            $message = 'Highly likely Laravel!';
             $cssClass = 'success';
             $level = 'high';
         }
         // Inertia and Livewire are also Laravel-specific frameworks
         elseif ($indicators['inertia'] || $indicators['livewire']) {
             $emoji = '🎯';
-            $message = "Highly likely Laravel{$details}!";
+            $message = 'Highly likely Laravel!';
             $cssClass = 'success';
             $level = 'high';
         }
         // Multiple indicators suggest Laravel
         elseif ($score >= self::HIGH_CONFIDENCE_THRESHOLD) {
             $emoji = '🎯';
-            $message = "Highly likely Laravel{$details}!";
+            $message = 'Highly likely Laravel!';
             $cssClass = 'success';
             $level = 'high';
         }
         // Some indicators found
         elseif ($score >= self::LOW_CONFIDENCE_THRESHOLD) {
             $emoji = '🤔';
-            $message = "Possibly Laravel{$details}";
+            $message = 'Possibly Laravel';
             $cssClass = 'warning';
             $level = 'medium';
         }
