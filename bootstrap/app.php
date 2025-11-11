@@ -15,7 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(prepend: [
             \App\Http\Middleware\CompressResponse::class,
         ]);
-        
+
+        // Add cache control headers (before security headers so they can be overridden if needed)
+        $middleware->web(append: [
+            \App\Http\Middleware\CacheControl::class,
+        ]);
+
         // Add security headers to all web requests
         $middleware->web(append: [
             \App\Http\Middleware\SecurityHeaders::class,
