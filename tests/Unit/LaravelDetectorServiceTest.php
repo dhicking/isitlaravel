@@ -248,6 +248,69 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['indicators']['breezeJetstream']);
     }
 
+    public function test_detects_laravel_404_page(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+
+            if ($request->method() === 'GET' && str_contains($url, 'laravel-detector-check-')) {
+                $html = <<<HTML
+                <html class="font-sans antialiased">
+                    <body class="min-h-screen bg-gray-100">
+                        <h1>Laravel</h1>
+                        <p>Sorry, the page you are looking for could not be found.</p>
+                        <a href="https://laravel.com/docs">Documentation</a>
+                    </body>
+                </html>
+                HTML;
+
+                return Http::response($html, 404);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravel404']);
+    }
+
+    public function test_does_not_flag_generic_404_page_as_laravel(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+
+            if ($request->method() === 'GET' && str_contains($url, 'laravel-detector-check-')) {
+                $html = <<<HTML
+                <html class="font-sans antialiased">
+                    <body class="min-h-screen bg-blue-50">
+                        <h1>Oops! Page not found</h1>
+                        <p>This is a generic 404 page.</p>
+                    </body>
+                </html>
+                HTML;
+
+                return Http::response($html, 404);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertFalse($result['indicators']['laravel404']);
+    }
+
     public function test_normalizes_url_without_protocol(): void
     {
         Http::fake([

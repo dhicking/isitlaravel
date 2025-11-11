@@ -559,24 +559,27 @@ class LaravelDetectorService
         try {
             if ($response404->status() === 404) {
                 $html = $response404->body();
-                $indicators = [
-                    str_contains($html, '<title>404') || str_contains($html, '<title>Not Found'),
-                    str_contains($html, 'min-h-screen'),
-                    str_contains($html, 'bg-gray-100'),
-                    str_contains($html, 'text-gray-500'),
-                    str_contains($html, 'antialiased'),
-                    str_contains($html, 'PAGE NOT FOUND'),
-                    str_contains($html, 'laravel') || str_contains($html, 'Laravel'),
-                    str_contains($html, 'Oops!'),
-                    str_contains($html, 'We could not find the page'),
-                    str_contains($html, 'max-w-xl'),
-                    str_contains($html, 'mx-auto'),
-                    (str_contains($html, '<svg') && str_contains($html, '404')),
-                ];
-                $matchCount = count(array_filter($indicators));
+                $lowerHtml = strtolower($html);
+
+                $containsLaravelWord = str_contains($lowerHtml, 'laravel');
+                $containsDefaultMessage = str_contains($lowerHtml, 'page you are looking for could not be found')
+                    || str_contains($lowerHtml, 'page you requested could not be found');
+                $containsDocsLink = str_contains($lowerHtml, 'laravel.com/docs');
+                $containsTailwindLayout = str_contains($lowerHtml, 'font-sans antialiased')
+                    && str_contains($lowerHtml, 'min-h-screen')
+                    && str_contains($lowerHtml, 'bg-gray-100');
+
+                $laravelSpecificMatches = collect([
+                    $containsDefaultMessage,
+                    $containsDocsLink,
+                    $containsTailwindLayout,
+                ])->filter()->count();
+
+                $isLaravel404 = $containsLaravelWord && $laravelSpecificMatches >= 1;
+
                 $laravel404 = [
-                    'detected' => $matchCount >= 3,
-                    'status' => $matchCount >= 3 ? 'found' : 'not-found',
+                    'detected' => $isLaravel404,
+                    'status' => $isLaravel404 ? 'found' : 'not-found',
                 ];
             } else {
                 $laravel404['status'] = 'no-404';
