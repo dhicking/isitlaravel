@@ -40,7 +40,17 @@
                     <h2 class="text-3xl font-bold text-gray-900 mb-2">
                         {{ $result['confidence']['message'] }}
                     </h2>
-                    <p class="text-gray-500 break-all mb-6">{{ $result['url'] }}</p>
+                    <div class="flex items-center justify-center gap-2 mb-6">
+                        @if(!empty($result['faviconUrl']))
+                            <img 
+                                src="{{ $result['faviconUrl'] }}" 
+                                alt="Favicon" 
+                                class="w-5 h-5 flex-shrink-0"
+                                onerror="this.style.display='none'"
+                            >
+                        @endif
+                        <p class="text-gray-500 break-all">{{ $result['url'] }}</p>
+                    </div>
 
                     <!-- Score Bar -->
                     <div class="max-w-md mx-auto">

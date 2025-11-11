@@ -46,6 +46,7 @@ class LaravelDetectorService
         $inertiaComponent = null;
         $livewireCount = 0;
         $detectedTools = [];
+        $faviconUrl = null;
 
         try {
             // Fetch the main page
@@ -73,6 +74,9 @@ class LaravelDetectorService
             $html = $response->body();
             $cookies = $response->cookies();
             $headers = $response->headers();
+
+            // Extract favicon URL
+            $faviconUrl = $this->extractFaviconUrl($html, $url);
 
             if (str_contains($html, '{{--')) {
                 $indicators['bladeComments'] = true;
@@ -173,6 +177,7 @@ class LaravelDetectorService
                 'success' => false,
                 'error' => $errorMessage,
                 'url' => $url,
+                'faviconUrl' => null,
             ];
         }
 
@@ -188,6 +193,7 @@ class LaravelDetectorService
         return [
             'success' => true,
             'url' => $url,
+            'faviconUrl' => $faviconUrl,
             'indicators' => $indicators,
             'score' => $score,
             'totalIndicators' => self::TOTAL_INDICATORS,
@@ -681,5 +687,49 @@ class LaravelDetectorService
         $logoComponentDetected = str_contains($lower, 'svg') && str_contains($lower, 'jetstream');
 
         return $layoutClassesDetected || $logoComponentDetected;
+    }
+
+    /**
+     * Extract the favicon URL from HTML or fall back to default.
+     *
+     * @param  string  $html  The HTML content
+     * @param  string  $baseUrl  The base URL of the site
+     * @return string|null The favicon URL or null if not found
+     */
+    private function extractFaviconUrl(string $html, string $baseUrl): ?string
+    {
+        // Look for favicon in link tags
+        $patterns = [
+            '/<link[^>]+rel=["\'](?:icon|shortcut icon)["\'][^>]+href=["\']([^"\']+)["\']/i',
+            '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\'](?:icon|shortcut icon)["\']/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $html, $matches)) {
+                $faviconPath = $matches[1];
+                // Convert relative URLs to absolute
+                if (str_starts_with($faviconPath, 'http://') || str_starts_with($faviconPath, 'https://')) {
+                    return $faviconPath;
+                }
+                if (str_starts_with($faviconPath, '//')) {
+                    return 'https:'.$faviconPath;
+                }
+                if (str_starts_with($faviconPath, '/')) {
+                    $parsed = parse_url($baseUrl);
+
+                    return ($parsed['scheme'] ?? 'https').'://'.($parsed['host'] ?? '').$faviconPath;
+                }
+                // Relative path
+                $parsed = parse_url($baseUrl);
+                $base = ($parsed['scheme'] ?? 'https').'://'.($parsed['host'] ?? '').($parsed['path'] ?? '/');
+
+                return rtrim($base, '/').'/'.ltrim($faviconPath, '/');
+            }
+        }
+
+        // Fall back to default favicon.ico location
+        $parsed = parse_url($baseUrl);
+
+        return ($parsed['scheme'] ?? 'https').'://'.($parsed['host'] ?? '').'/favicon.ico';
     }
 }
