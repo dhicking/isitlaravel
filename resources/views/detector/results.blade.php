@@ -56,6 +56,9 @@
                             >
                         @endif
                         <p class="text-gray-600 break-all">{{ $result['url'] }}</p>
+                        @if(!empty($result['cached']))
+                            <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded" title="This result was loaded from cache">Cached</span>
+                        @endif
                     </div>
 
                     <!-- Score Bar -->
@@ -318,10 +321,11 @@ Find out other sites built with Laravel at isit.laravel.cloud
                 <form method="POST" action="{{ route('detect') }}" class="inline">
                     @csrf
                     <input type="hidden" name="url" value="{{ $result['url'] }}">
+                    <input type="hidden" name="refresh" value="1">
                     <button 
                         type="submit"
                         class="px-6 py-3 bg-laravel-red hover:bg-red-600 focus:ring-4 focus:ring-red-500 focus:ring-offset-2 text-white font-semibold rounded-lg transition-all outline-none"
-                        aria-label="Re-scan this URL"
+                        aria-label="Re-scan this URL and bypass cache"
                     >
                         <span aria-hidden="true">🔄</span> Re-scan
                     </button>

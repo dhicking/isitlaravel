@@ -20,7 +20,8 @@ class DetectorController extends Controller
     public function detect(DetectLaravelRequest $request): View
     {
         $url = $request->input('url');
-        $result = $this->detectorService->detect($url);
+        $forceRefresh = $request->boolean('refresh', false);
+        $result = $this->detectorService->detect($url, $forceRefresh);
 
         return view('detector.results', [
             'result' => $result,

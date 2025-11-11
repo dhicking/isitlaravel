@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -15,15 +16,34 @@ class LaravelDetectorService
     private const TOTAL_INDICATORS = 17;
 
     /**
+     * Cache TTL in minutes for detection results.
+     */
+    private const CACHE_TTL_MINUTES = 15;
+
+    /**
      * Detect if a website is built with Laravel by analyzing various indicators.
      *
      * @param  string  $url  The URL to analyze
-     * @return array{success: bool, url: string, indicators?: array<string, bool>, score?: int, totalIndicators?: int, confidence?: array{level: string, emoji: string, message: string, cssClass: string}, laravel404CheckStatus?: string, inertiaComponent?: string|null, livewireCount?: int, detectedTools?: array<string>, percentage?: int, error?: string}
+     * @param  bool  $forceRefresh  Whether to bypass cache and force a fresh detection
+     * @return array{success: bool, url: string, indicators?: array<string, bool>, score?: int, totalIndicators?: int, confidence?: array{level: string, emoji: string, message: string, cssClass: string}, laravel404CheckStatus?: string, inertiaComponent?: string|null, livewireCount?: int, detectedTools?: array<string>, percentage?: int, error?: string, cached?: bool}
      */
-    public function detect(string $url): array
+    public function detect(string $url, bool $forceRefresh = false): array
     {
         // Normalize URL
         $url = $this->normalizeUrl($url);
+
+        // Generate cache key based on normalized URL
+        $cacheKey = 'laravel_detection:'.md5($url);
+
+        // Return cached result if available and not forcing refresh
+        if (! $forceRefresh) {
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                $cached['cached'] = true;
+
+                return $cached;
+            }
+        }
 
         $indicators = [
             'xsrfToken' => false,
@@ -183,12 +203,18 @@ class LaravelDetectorService
                 $errorMessage = 'Request timed out. This website may be blocking automated detection.';
             }
 
-            return [
+            $errorResult = [
                 'success' => false,
                 'error' => $errorMessage,
                 'url' => $url,
                 'faviconUrl' => null,
+                'cached' => false,
             ];
+
+            // Cache errors for a shorter period (5 minutes) to avoid hammering failing sites
+            Cache::put($cacheKey, $errorResult, now()->addMinutes(5));
+
+            return $errorResult;
         }
 
         // Calculate score
@@ -200,7 +226,7 @@ class LaravelDetectorService
         // Calculate percentage based on confidence level and indicators
         $percentage = $this->calculatePercentage($score, $indicators, $confidence['level']);
 
-        return [
+        $result = [
             'success' => true,
             'url' => $url,
             'faviconUrl' => $faviconUrl,
@@ -213,7 +239,13 @@ class LaravelDetectorService
             'livewireCount' => $livewireCount,
             'detectedTools' => $detectedTools,
             'percentage' => $percentage,
+            'cached' => false,
         ];
+
+        // Cache the result
+        Cache::put($cacheKey, $result, now()->addMinutes(self::CACHE_TTL_MINUTES));
+
+        return $result;
     }
 
     /**
