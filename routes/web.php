@@ -16,3 +16,10 @@ Route::get('/results', [DetectorController::class, 'results'])
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])
     ->middleware('throttle:10,1') // 10 requests per minute for sitemap
     ->name('sitemap');
+
+// Serve favicon to prevent 404 errors
+Route::get('/favicon.ico', function () {
+    return response()->file(public_path('favicon.ico'), [
+        'Content-Type' => 'image/x-icon',
+    ]);
+})->name('favicon');
