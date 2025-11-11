@@ -161,7 +161,6 @@
                             @php
                                 $buildIndicators = [
                                     ['Vite', $result['indicators']['viteClient']],
-                                    ['index.php routing', $result['indicators']['indexPhp']],
                                     ['/up health check', $result['indicators']['upEndpoint']],
                                     ['Laravel tools', $result['indicators']['laravelTools']],
                                 ];
@@ -215,8 +214,7 @@
                             This tool analyzes various indicators to detect if a website is built with Laravel. 
                             We check for Laravel-specific cookies, CSRF tokens, build tools like Vite, modern 
                             frameworks like Inertia.js and Livewire, Laravel tools (Telescope, Horizon, Nova, Pulse), 
-                            the <code class="bg-blue-100 px-1 rounded">/up</code> health check endpoint, and 
-                            <code class="bg-blue-100 px-1 rounded">index.php</code> routing support.
+                            and the <code class="bg-blue-100 px-1 rounded">/up</code> health check endpoint.
                         </p>
                         <p class="text-gray-700 text-sm leading-relaxed">
                             <strong>Note:</strong> Some Laravel sites may use custom configurations that hide these indicators, 

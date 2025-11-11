@@ -11,7 +11,7 @@ class LaravelDetectorService
 
     private const LOW_CONFIDENCE_THRESHOLD = 1;
 
-    private const TOTAL_INDICATORS = 12;
+    private const TOTAL_INDICATORS = 11;
 
     /**
      * Detect if a website is built with Laravel by analyzing various indicators.
@@ -34,7 +34,6 @@ class LaravelDetectorService
             'livewire' => false,
             'laravel404' => false,
             'laravelTools' => false,
-            'indexPhp' => false,
             'upEndpoint' => false,
             'poweredByHeader' => false,
         ];
@@ -142,7 +141,6 @@ class LaravelDetectorService
             $laravel404CheckStatus = $parallelChecks['laravel404']['status'];
             $indicators['laravelTools'] = $parallelChecks['laravelTools']['detected'];
             $detectedTools = $parallelChecks['laravelTools']['tools'];
-            $indicators['indexPhp'] = $parallelChecks['indexPhp'];
             $indicators['upEndpoint'] = $parallelChecks['upEndpoint'];
 
         } catch (\Exception $e) {
@@ -500,7 +498,7 @@ class LaravelDetectorService
      * Run multiple independent checks in parallel for better performance.
      *
      * @param  string  $url  The base URL to check
-     * @return array{laravel404: array{detected: bool, status: string}, laravelTools: array{detected: bool, tools: array<string>}, indexPhp: bool, upEndpoint: bool}
+     * @return array{laravel404: array{detected: bool, status: string}, laravelTools: array{detected: bool, tools: array<string>}, upEndpoint: bool}
      */
     private function runParallelChecks(string $url): array
     {
@@ -509,17 +507,8 @@ class LaravelDetectorService
         $testUrl404 = rtrim($url, '/').$randomPath;
         $testUrlUp = rtrim($url, '/').'/up';
 
-        // Parse URL for index.php check
-        $parsedUrl = parse_url($url);
-        $baseUrl = ($parsedUrl['scheme'] ?? 'https').'://'.($parsedUrl['host'] ?? '');
-        $path = $parsedUrl['path'] ?? '/';
-        $testUrlIndexPhp = ($path === '/') ? $baseUrl.'/index.php' : $baseUrl.'/index.php'.$path;
-
-        // Tools to check
-        $tools = ['telescope', 'horizon', 'nova', 'pulse'];
-
         // Build pool of requests (Note: pool returns numeric indices, not named keys)
-        [$response404, $responseUp, $responseIndexPhp, $responseTelescope, $responseHorizon, $responseNova, $responsePulse] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $testUrlIndexPhp, $url) {
+        [$response404, $responseUp, $responseTelescope, $responseHorizon, $responseNova, $responsePulse] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
@@ -529,8 +518,6 @@ class LaravelDetectorService
                 $pool->timeout(5)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($testUrl404),
                 // /up endpoint check
                 $pool->timeout(3)->withHeaders($headers)->get($testUrlUp),
-                // index.php check
-                $pool->timeout(5)->withHeaders($headers)->get($testUrlIndexPhp),
                 // Laravel tools checks
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/telescope'),
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/horizon'),
@@ -585,16 +572,6 @@ class LaravelDetectorService
             }
         }
 
-        // Process index.php check
-        $indexPhpDetected = false;
-        try {
-            if ($responseIndexPhp->successful()) {
-                $indexPhpDetected = true;
-            }
-        } catch (\Exception $e) {
-            // Ignore error
-        }
-
         // Process /up endpoint check
         $upEndpointDetected = false;
         try {
@@ -614,7 +591,6 @@ class LaravelDetectorService
                 'detected' => count($detectedTools) > 0,
                 'tools' => $detectedTools,
             ],
-            'indexPhp' => $indexPhpDetected,
             'upEndpoint' => $upEndpointDetected,
         ];
     }
