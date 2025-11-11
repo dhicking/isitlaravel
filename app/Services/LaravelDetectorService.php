@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -569,7 +570,7 @@ class LaravelDetectorService
         // Process 404 check result
         $laravel404 = ['detected' => false, 'status' => 'not-checked'];
         try {
-            if ($response404->status() === 404) {
+            if ($response404 instanceof Response && $response404->status() === 404) {
                 $html = $response404->body();
                 $lowerHtml = strtolower($html);
 
@@ -606,19 +607,15 @@ class LaravelDetectorService
         $toolNames = ['Telescope', 'Horizon', 'Nova', 'Pulse'];
 
         foreach ($toolResponses as $index => $toolResponse) {
-            try {
-                if (in_array($toolResponse->status(), [401, 403])) {
-                    $detectedTools[] = $toolNames[$index];
-                }
-            } catch (\Exception $e) {
-                // Ignore errors for individual tools
+            if ($toolResponse instanceof Response && in_array($toolResponse->status(), [401, 403])) {
+                $detectedTools[] = $toolNames[$index];
             }
         }
 
         // Process /up endpoint check
         $upEndpointDetected = false;
         try {
-            if ($responseUp->successful()) {
+            if ($responseUp instanceof Response && $responseUp->successful()) {
                 $body = trim($responseUp->body());
                 if (strlen($body) < 100) {
                     $upEndpointDetected = true;
@@ -630,7 +627,7 @@ class LaravelDetectorService
 
         $mixManifestDetected = false;
         try {
-            if ($responseMixManifest->successful() && $this->isValidMixManifest($responseMixManifest->body())) {
+            if ($responseMixManifest instanceof Response && $responseMixManifest->successful() && $this->isValidMixManifest($responseMixManifest->body())) {
                 $mixManifestDetected = true;
             }
         } catch (\Exception $e) {
