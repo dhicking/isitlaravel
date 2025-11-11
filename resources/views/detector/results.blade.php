@@ -239,9 +239,8 @@
                     // Generate tweet text
                     $emoji = $result['percentage'] >= 70 ? '✅' : ($result['percentage'] >= 30 ? '❓' : '❌');
                     $domain = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
-                    $tweetText = "{$emoji} {$domain} is {$result['percentage']}% Laravel!\n{$confidenceMeter}\n\nCheck if your site is Laravel at";
-                    $tweetUrl = url()->route('home');
-                    $shareUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($tweetText) . '&url=' . urlencode($tweetUrl) . '&hashtags=Laravel,WebDev';
+                    $tweetText = "{$emoji} {$domain} is {$result['percentage']}% Laravel!\n{$confidenceMeter}\n\nFind out other sites built with Laravel at isit.laravel.cloud\n\n#laravel";
+                    $shareUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($tweetText);
                 @endphp
                 
                 <div class="max-w-lg mx-auto">
@@ -250,7 +249,9 @@
                         <div class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $emoji }} {{ $domain }} is {{ $result['percentage'] }}% Laravel!
 {{ $confidenceMeter }}
 
-Check if your site is Laravel at {{ parse_url($tweetUrl, PHP_URL_HOST) }} #Laravel #WebDev</div>
+Find out other sites built with Laravel at isit.laravel.cloud
+
+#laravel</div>
                     </div>
                     
                     <!-- Share Button -->
