@@ -147,7 +147,6 @@
                                     ['laravel_session cookie', $result['indicators']['laravelSession']],
                                     ['CSRF meta tag', $result['indicators']['csrfMeta']],
                                     ['_token input', $result['indicators']['tokenInput']],
-                                    ['Laravel 404 page', $result['indicators']['laravel404']],
                                     ['X-Powered-By header', $result['indicators']['poweredByHeader']],
                                 ];
                             @endphp
@@ -161,23 +160,26 @@
                         </div>
                     </div>
 
-                    <!-- Build & Endpoints -->
+                    <!-- Laravel Ecosystem -->
                     <div>
                         <h4 class="font-semibold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                            <span class="text-lg">⚡</span>
-                            Build & Endpoints
+                            <span class="text-lg">🌐</span>
+                            Laravel Ecosystem
                         </h4>
                         <div class="space-y-2">
                             @php
-                                $buildIndicators = [
-                            ['Vite', $result['indicators']['viteClient']],
-                            ['Mix manifest', $result['indicators']['mixManifest']],
-                                    ['/up health check', $result['indicators']['upEndpoint']],
-                                    ['Laravel tools', $result['indicators']['laravelTools']],
+                                $ecosystemIndicators = [
+                                    ['Vite assets', $result['indicators']['viteClient']],
+                                    ['Mix manifest', $result['indicators']['mixManifest']],
+                                    ['Inertia.js', $result['indicators']['inertia']],
+                                    ['Livewire', $result['indicators']['livewire']],
+                                    ['Laravel Echo', $result['indicators']['laravelEcho']],
+                                    ['Blade comments', $result['indicators']['bladeComments']],
+                                    ['Breeze / Jetstream layout', $result['indicators']['breezeJetstream']],
                                 ];
                             @endphp
                             
-                            @foreach($buildIndicators as [$label, $found])
+                            @foreach($ecosystemIndicators as [$label, $found])
                                 <div class="flex items-center text-sm px-3 py-2 rounded-lg {{ $found ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-400' }}">
                                     <span class="mr-2">{{ $found ? '✓' : '✗' }}</span>
                                     <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
@@ -186,24 +188,22 @@
                         </div>
                     </div>
 
-                    <!-- Modern Stacks -->
+                    <!-- Platform & Endpoints -->
                     <div>
                         <h4 class="font-semibold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                            <span class="text-lg">🚀</span>
-                            Modern Stacks
+                            <span class="text-lg">🛠️</span>
+                            Platform & Endpoints
                         </h4>
                         <div class="space-y-2">
                             @php
-                                $modernIndicators = [
-                                    ['Inertia.js', $result['indicators']['inertia']],
-                                    ['Livewire', $result['indicators']['livewire']],
-                            ['Laravel Echo', $result['indicators']['laravelEcho']],
-                            ['Blade comments', $result['indicators']['bladeComments']],
-                            ['Breeze / Jetstream layout', $result['indicators']['breezeJetstream']],
+                                $platformIndicators = [
+                                    ['Laravel 404 page', $result['indicators']['laravel404']],
+                                    ['/up health check', $result['indicators']['upEndpoint']],
+                                    ['Telescope / Horizon / Nova / Pulse', $result['indicators']['laravelTools']],
                                 ];
                             @endphp
                             
-                            @foreach($modernIndicators as [$label, $found])
+                            @foreach($platformIndicators as [$label, $found])
                                 <div class="flex items-center text-sm px-3 py-2 rounded-lg {{ $found ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-400' }}">
                                     <span class="mr-2">{{ $found ? '✓' : '✗' }}</span>
                                     <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
