@@ -640,10 +640,27 @@ class LaravelDetectorService
         $detectedTools = [];
         $toolResponses = [$responseTelescope, $responseHorizon, $responseNova, $responsePulse];
         $toolNames = ['Telescope', 'Horizon', 'Nova', 'Pulse'];
+        $toolPaths = ['telescope', 'horizon', 'nova', 'pulse'];
 
         foreach ($toolResponses as $index => $toolResponse) {
-            if ($toolResponse instanceof Response && in_array($toolResponse->status(), [401, 403])) {
-                $detectedTools[] = $toolNames[$index];
+            if ($toolResponse instanceof Response) {
+                $status = $toolResponse->status();
+                $toolName = $toolNames[$index];
+                $toolPath = $toolPaths[$index];
+
+                // If we get a 403 (Forbidden) or 401 (Unauthorized), it means the route exists but is protected
+                // This is a strong indicator that the Laravel tool is installed
+                if (in_array($status, [401, 403])) {
+                    $detectedTools[] = $toolName;
+                }
+
+                // Also check if we get a 200 and the response contains tool-specific indicators
+                if ($status === 200) {
+                    $html = strtolower($toolResponse->body());
+                    if (stripos($html, $toolPath) !== false || stripos($html, 'laravel') !== false || stripos($html, $toolName) !== false) {
+                        $detectedTools[] = $toolName;
+                    }
+                }
             }
         }
 
