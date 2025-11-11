@@ -96,15 +96,28 @@
                 <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Share Your Result</h3>
                 
                 @php
+                    // Generate shareable URL using just the domain (no protocol) for cleaner URLs
+                    // Extract domain from the full URL
+                    $domain = parse_url($result['url'], PHP_URL_HOST) ?: str_replace(['https://', 'http://'], '', $result['url']);
+                    // Generate shareable URL and ensure it uses https:// protocol
+                    $baseUrl = url(route('results', [], false));
+                    // Ensure https:// protocol (replace http:// if present)
+                    if (str_starts_with($baseUrl, 'http://')) {
+                        $baseUrl = str_replace('http://', 'https://', $baseUrl);
+                    } elseif (!str_starts_with($baseUrl, 'https://')) {
+                        $baseUrl = 'https://' . ltrim($baseUrl, '/');
+                    }
+                    $shareableUrl = $baseUrl . '?url=' . urlencode($domain);
+                    
                     // Generate confidence meter using emoji blocks
                     $filledBlocks = round($result['percentage'] / 20);
                     $emptyBlocks = 5 - $filledBlocks;
                     $confidenceMeter = str_repeat('🟥', $filledBlocks) . str_repeat('⬜', $emptyBlocks);
                     
-                    // Generate share text using confidence message
-                    $domain = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
+                    // Generate share text using confidence message (include shareable link)
+                    $domainDisplay = parse_url($result['url'], PHP_URL_HOST) ?: $result['url'];
                     $confidenceMessage = $result['confidence']['message'];
-                    $shareText = "{$result['confidence']['emoji']} {$domain}: {$confidenceMessage}\n{$confidenceMeter}\n\nFind out other sites built with Laravel at isit.laravel.cloud\n\n#laravel";
+                    $shareText = "{$result['confidence']['emoji']} {$domainDisplay}: {$confidenceMessage}\n{$confidenceMeter}\n\n{$shareableUrl}\n\nDiscover other sites built with Laravel at isit.laravel.cloud";
                     
                     // Twitter/X share URL
                     $twitterUrl = 'https://twitter.com/intent/tweet?text=' . urlencode($shareText);
@@ -116,12 +129,12 @@
                 <div class="max-w-lg mx-auto">
                     <!-- Preview -->
                     <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                        <div id="share-text-preview" data-share-text="{{ htmlspecialchars($shareText, ENT_QUOTES, 'UTF-8') }}" class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $result['confidence']['emoji'] }} {{ $domain }}: {{ $confidenceMessage }}
+                        <div id="share-text-preview" data-share-text="{{ htmlspecialchars($shareText, ENT_QUOTES, 'UTF-8') }}" class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed">{{ $result['confidence']['emoji'] }} {{ $domainDisplay }}: {{ $confidenceMessage }}
 {{ $confidenceMeter }}
 
-Find out other sites built with Laravel at isit.laravel.cloud
+{{ $shareableUrl }}
 
-#laravel</div>
+Discover other sites built with Laravel at isit.laravel.cloud</div>
                     </div>
                     
                     <!-- Share Buttons -->
@@ -171,6 +184,33 @@ Find out other sites built with Laravel at isit.laravel.cloud
 
                     <p id="copy-feedback" class="mt-3 text-center text-xs text-green-600 hidden" role="status" aria-live="polite">
                         Copied to clipboard!
+                    </p>
+                </div>
+                
+                <!-- Shareable Link -->
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <label class="block text-xs font-medium text-gray-700 mb-2">Shareable Link</label>
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            id="shareable-url" 
+                            value="{{ $shareableUrl }}" 
+                            readonly
+                            class="flex-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                            onclick="this.select()"
+                        >
+                        <button 
+                            type="button"
+                            onclick="copyShareableUrl()"
+                            id="copy-url-button"
+                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-gray-700 font-semibold rounded-lg transition-all outline-none text-sm whitespace-nowrap"
+                            aria-label="Copy shareable link"
+                        >
+                            <span id="copy-url-text">Copy Link</span>
+                        </button>
+                    </div>
+                    <p id="copy-url-feedback" class="mt-2 text-xs text-green-600 hidden" role="status" aria-live="polite">
+                        Link copied to clipboard!
                     </p>
                 </div>
             </div>
@@ -349,18 +389,17 @@ Find out other sites built with Laravel at isit.laravel.cloud
                 <a href="{{ route('home') }}" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-500 focus:ring-offset-2 text-gray-700 font-semibold rounded-lg transition-all outline-none">
                     Analyze Another URL
                 </a>
-                <form method="POST" action="{{ route('detect') }}" class="inline">
-                    @csrf
-                    <input type="hidden" name="url" value="{{ $result['url'] }}">
-                    <input type="hidden" name="refresh" value="1">
-                    <button 
-                        type="submit"
-                        class="px-6 py-3 bg-laravel-red hover:bg-red-600 focus:ring-4 focus:ring-red-500 focus:ring-offset-2 text-white font-semibold rounded-lg transition-all outline-none"
-                        aria-label="Re-scan this URL and bypass cache"
-                    >
-                        <span aria-hidden="true">🔄</span> Re-scan
-                    </button>
-                </form>
+                @php
+                    // Extract domain for cleaner URL
+                    $domain = parse_url($result['url'], PHP_URL_HOST) ?: str_replace(['https://', 'http://'], '', $result['url']);
+                @endphp
+                <a 
+                    href="{{ route('results') }}?url={{ urlencode($domain) }}&refresh=1"
+                    class="px-6 py-3 bg-laravel-red hover:bg-red-600 focus:ring-4 focus:ring-red-500 focus:ring-offset-2 text-white font-semibold rounded-lg transition-all outline-none inline-flex items-center gap-2"
+                    aria-label="Re-scan this URL and bypass cache"
+                >
+                    <span aria-hidden="true">🔄</span> Re-scan
+                </a>
             </div>
         @endif
     </main>
@@ -399,6 +438,34 @@ Find out other sites built with Laravel at isit.laravel.cloud
                 });
         } else {
             fallbackCopy(text, success);
+        }
+    }
+
+    function copyShareableUrl() {
+        const urlInput = document.getElementById('shareable-url');
+        const url = urlInput.value;
+        const copyButton = document.getElementById('copy-url-button');
+        const copyText = document.getElementById('copy-url-text');
+        const feedback = document.getElementById('copy-url-feedback');
+
+        const success = () => {
+            copyText.textContent = 'Copied!';
+            feedback.classList.remove('hidden');
+
+            setTimeout(function() {
+                copyText.textContent = 'Copy Link';
+                feedback.classList.add('hidden');
+            }, 2000);
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(url)
+                .then(success)
+                .catch(function() {
+                    fallbackCopy(url, success);
+                });
+        } else {
+            fallbackCopy(url, success);
         }
     }
 
