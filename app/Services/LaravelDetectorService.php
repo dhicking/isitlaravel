@@ -57,6 +57,13 @@ class LaravelDetectorService
                 ->get($url);
 
             if (! $response->successful()) {
+                // Provide more helpful error messages for common status codes
+                if ($response->status() === 403) {
+                    throw new \Exception('Access denied (HTTP 403). This website is blocking automated requests. Try analyzing a different site or check if the URL is correct.');
+                }
+                if ($response->status() === 404) {
+                    throw new \Exception('Website not found (HTTP 404). Please check the URL and try again.');
+                }
                 throw new \Exception("Failed to fetch URL: HTTP {$response->status()}");
             }
 
