@@ -143,12 +143,13 @@ class LaravelDetectorService
             $indicators['tokenInput'] = $this->containsPattern($html, '<input[^>]+name=["\']_token["\']');
 
             // Check for Vite
+            // Only Laravel-specific patterns are reliable indicators
+            // The @vite Blade directive is unique to Laravel
+            // Generic /build/ patterns are too common (WordPress Sage, ProcessWire, custom setups, etc.)
             $vitePatterns = [
                 'src=["\'][^"\']*@vite',
                 'src=["\'][^"\']*@vite/client',
-                'src=["\'][^"\']*\/build\/',
-                'src=["\'][^"\']*\/build\/assets\/',
-                'href=["\'][^"\']*\/build\/assets\/',
+                'href=["\'][^"\']*@vite',
             ];
             foreach ($vitePatterns as $pattern) {
                 if ($this->containsPattern($html, $pattern)) {
@@ -1161,9 +1162,11 @@ class LaravelDetectorService
             || (isset($pageData['props']) && is_array($pageData['props']) && isset($pageData['props']['_token']));
 
         // 2. Laravel asset paths combined with Inertia
-        $hasLaravelAssets = str_contains($lowerHtml, '/build/')
-            || str_contains($lowerHtml, '@vite')
-            || str_contains($lowerHtml, 'laravel-mix');
+        // Prioritize Laravel-specific patterns (@vite is unique to Laravel)
+        // /build/ is too generic (could be WordPress Sage, ProcessWire, etc.)
+        $hasLaravelAssets = str_contains($lowerHtml, '@vite')
+            || str_contains($lowerHtml, 'laravel-mix')
+            || (str_contains($lowerHtml, '/build/') && str_contains($lowerHtml, 'laravel'));
 
         // 3. Laravel-specific error handling in Inertia responses
         $hasLaravelErrors = isset($pageData['props']['errors'])
