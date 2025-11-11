@@ -10,7 +10,7 @@ composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
 # Install and build frontend assets
 echo "🎨 Building frontend assets..."
-npm ci --omit=dev
+npm ci
 npm run build
 
 # Clear and cache configuration
