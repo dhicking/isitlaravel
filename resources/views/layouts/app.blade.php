@@ -6,6 +6,13 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Is It Laravel?')</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    
     <!-- OpenGraph Meta Tags -->
     <meta property="og:title" content="@yield('og_title', 'Is It Laravel?')">
     <meta property="og:description" content="@yield('og_description', 'Detect if any website is built with Laravel. We check cookies, CSRF tokens, build tools, and more.')">
