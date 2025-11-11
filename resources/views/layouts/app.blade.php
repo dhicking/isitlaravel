@@ -55,19 +55,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Instrument Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-                        serif: ['Instrument Serif', 'ui-serif', 'Georgia', 'serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         :root {
             --color-laravel-red: #FF2D20;

@@ -4,9 +4,14 @@ set -e
 
 echo "🚀 Starting deployment..."
 
-# Install dependencies with optimized autoloader
-echo "📦 Installing dependencies..."
+# Install PHP dependencies with optimized autoloader
+echo "📦 Installing PHP dependencies..."
 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+# Install and build frontend assets
+echo "🎨 Building frontend assets..."
+npm ci --omit=dev
+npm run build
 
 # Clear and cache configuration
 echo "⚙️  Optimizing configuration..."
