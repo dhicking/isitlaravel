@@ -48,8 +48,11 @@ class LaravelDetectorService
             // Fetch the main page
             $response = Http::timeout(10)
                 ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; LaravelDetector/1.0)',
-                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language' => 'en-US,en;q=0.9',
+                    'Accept-Encoding' => 'gzip, deflate, br',
+                    'Referer' => 'https://www.google.com/',
                 ])
                 ->get($url);
 
@@ -188,8 +191,8 @@ class LaravelDetectorService
 
             $response = Http::timeout(5)
                 ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; LaravelDetector/1.0)',
-                    'Accept' => 'text/html',
+                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 ])
                 ->get($testUrl);
 
@@ -354,7 +357,7 @@ class LaravelDetectorService
 
                 $response = Http::timeout(3)
                     ->withHeaders([
-                        'User-Agent' => 'Mozilla/5.0 (compatible; LaravelDetector/1.0)',
+                        'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     ])
                     ->get($testUrl);
 
@@ -411,7 +414,7 @@ class LaravelDetectorService
 
             $response = Http::timeout(5)
                 ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; LaravelDetector/1.0)',
+                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 ])
                 ->get($testUrl);
 
@@ -439,7 +442,7 @@ class LaravelDetectorService
 
             $response = Http::timeout(3)
                 ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; LaravelDetector/1.0)',
+                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 ])
                 ->get($testUrl);
 
