@@ -11,7 +11,7 @@ class LaravelDetectorService
 
     private const LOW_CONFIDENCE_THRESHOLD = 1;
 
-    private const TOTAL_INDICATORS = 11;
+    private const TOTAL_INDICATORS = 15;
 
     /**
      * Detect if a website is built with Laravel by analyzing various indicators.
@@ -34,6 +34,10 @@ class LaravelDetectorService
             'livewire' => false,
             'laravel404' => false,
             'laravelTools' => false,
+            'mixManifest' => false,
+            'bladeComments' => false,
+            'laravelEcho' => false,
+            'breezeJetstream' => false,
             'upEndpoint' => false,
             'poweredByHeader' => false,
         ];
@@ -69,6 +73,18 @@ class LaravelDetectorService
             $html = $response->body();
             $cookies = $response->cookies();
             $headers = $response->headers();
+
+            if (str_contains($html, '{{--')) {
+                $indicators['bladeComments'] = true;
+            }
+
+            if ($this->detectLaravelEcho($html)) {
+                $indicators['laravelEcho'] = true;
+            }
+
+            if ($this->detectBreezeJetstream($html)) {
+                $indicators['breezeJetstream'] = true;
+            }
 
             // Check cookies
             foreach ($cookies as $cookie) {
@@ -141,6 +157,7 @@ class LaravelDetectorService
             $laravel404CheckStatus = $parallelChecks['laravel404']['status'];
             $indicators['laravelTools'] = $parallelChecks['laravelTools']['detected'];
             $detectedTools = $parallelChecks['laravelTools']['tools'];
+            $indicators['mixManifest'] = $parallelChecks['mixManifest'];
             $indicators['upEndpoint'] = $parallelChecks['upEndpoint'];
 
         } catch (\Exception $e) {
@@ -498,7 +515,7 @@ class LaravelDetectorService
      * Run multiple independent checks in parallel for better performance.
      *
      * @param  string  $url  The base URL to check
-     * @return array{laravel404: array{detected: bool, status: string}, laravelTools: array{detected: bool, tools: array<string>}, upEndpoint: bool}
+     * @return array{laravel404: array{detected: bool, status: string}, laravelTools: array{detected: bool, tools: array<string>}, mixManifest: bool, upEndpoint: bool}
      */
     private function runParallelChecks(string $url): array
     {
@@ -506,9 +523,10 @@ class LaravelDetectorService
         $randomPath = '/laravel-detector-check-'.bin2hex(random_bytes(8));
         $testUrl404 = rtrim($url, '/').$randomPath;
         $testUrlUp = rtrim($url, '/').'/up';
+        $mixManifestUrl = rtrim($url, '/').'/mix-manifest.json';
 
         // Build pool of requests (Note: pool returns numeric indices, not named keys)
-        [$response404, $responseUp, $responseTelescope, $responseHorizon, $responseNova, $responsePulse] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $url) {
+        [$response404, $responseUp, $responseMixManifest, $responseTelescope, $responseHorizon, $responseNova, $responsePulse] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $mixManifestUrl, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
@@ -518,6 +536,8 @@ class LaravelDetectorService
                 $pool->timeout(5)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($testUrl404),
                 // /up endpoint check
                 $pool->timeout(3)->withHeaders($headers)->get($testUrlUp),
+                // Mix manifest check
+                $pool->timeout(3)->withHeaders($headers)->get($mixManifestUrl),
                 // Laravel tools checks
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/telescope'),
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/horizon'),
@@ -585,13 +605,64 @@ class LaravelDetectorService
             // Ignore error
         }
 
+        $mixManifestDetected = false;
+        try {
+            if ($responseMixManifest->successful() && $this->isValidMixManifest($responseMixManifest->body())) {
+                $mixManifestDetected = true;
+            }
+        } catch (\Exception $e) {
+            // Ignore error
+        }
+
         return [
             'laravel404' => $laravel404,
             'laravelTools' => [
                 'detected' => count($detectedTools) > 0,
                 'tools' => $detectedTools,
             ],
+            'mixManifest' => $mixManifestDetected,
             'upEndpoint' => $upEndpointDetected,
         ];
+    }
+
+    /**
+     * Determine if the provided content looks like a Laravel Mix manifest.
+     */
+    private function isValidMixManifest(string $content): bool
+    {
+        $decoded = json_decode($content, true);
+
+        if (! is_array($decoded) || empty($decoded)) {
+            return false;
+        }
+
+        $keys = array_keys($decoded);
+
+        return collect($keys)->contains(fn ($key) => str_contains($key, '/js/') || str_contains($key, '/css/'));
+    }
+
+    /**
+     * Detect Laravel Echo usage from the HTML content.
+     */
+    private function detectLaravelEcho(string $html): bool
+    {
+        $lower = strtolower($html);
+
+        return str_contains($lower, 'laravel-echo')
+            || str_contains($lower, 'window.echo')
+            || str_contains($lower, 'new echo(');
+    }
+
+    /**
+     * Detect if the layout appears to use the default Breeze / Jetstream styling.
+     */
+    private function detectBreezeJetstream(string $html): bool
+    {
+        $lower = strtolower($html);
+
+        $layoutClassesDetected = str_contains($lower, 'font-sans antialiased') && str_contains($lower, 'min-h-screen') && str_contains($lower, 'bg-gray-100');
+        $logoComponentDetected = str_contains($lower, 'svg') && str_contains($lower, 'jetstream');
+
+        return $layoutClassesDetected || $logoComponentDetected;
     }
 }

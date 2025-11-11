@@ -175,6 +175,79 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['indicators']['upEndpoint']);
     }
 
+    public function test_detects_mix_manifest(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+
+            if (str_ends_with($url, '/mix-manifest.json')) {
+                return Http::response(json_encode([
+                    '/js/app.js' => '/js/app.js?id=123',
+                    '/css/app.css' => '/css/app.css?id=456',
+                ]), 200, ['Content-Type' => 'application/json']);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['mixManifest']);
+    }
+
+    public function test_detects_blade_comments(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body>{{-- Blade Comment --}}Test</body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['bladeComments']);
+    }
+
+    public function test_detects_laravel_echo(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body><script>window.Echo = new Echo({ broadcaster: "pusher" });</script></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelEcho']);
+    }
+
+    public function test_detects_breeze_or_jetstream_layout(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body class="font-sans antialiased"><div class="min-h-screen bg-gray-100">Content</div></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['breezeJetstream']);
+    }
+
     public function test_normalizes_url_without_protocol(): void
     {
         Http::fake([

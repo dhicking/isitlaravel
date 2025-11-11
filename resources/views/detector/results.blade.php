@@ -160,7 +160,8 @@
                         <div class="space-y-2">
                             @php
                                 $buildIndicators = [
-                                    ['Vite', $result['indicators']['viteClient']],
+                            ['Vite', $result['indicators']['viteClient']],
+                            ['Mix manifest', $result['indicators']['mixManifest']],
                                     ['/up health check', $result['indicators']['upEndpoint']],
                                     ['Laravel tools', $result['indicators']['laravelTools']],
                                 ];
@@ -186,6 +187,9 @@
                                 $modernIndicators = [
                                     ['Inertia.js', $result['indicators']['inertia']],
                                     ['Livewire', $result['indicators']['livewire']],
+                            ['Laravel Echo', $result['indicators']['laravelEcho']],
+                            ['Blade comments', $result['indicators']['bladeComments']],
+                            ['Breeze / Jetstream layout', $result['indicators']['breezeJetstream']],
                                 ];
                             @endphp
                             
