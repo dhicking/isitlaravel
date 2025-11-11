@@ -134,20 +134,16 @@ class LaravelDetectorService
             }
 
             // Check Laravel 404 page
-            $laravel404Result = $this->checkLaravel404Page($url);
-            $indicators['laravel404'] = $laravel404Result['detected'];
-            $laravel404CheckStatus = $laravel404Result['status'];
+            // Run additional checks in parallel for better performance
+            $parallelChecks = $this->runParallelChecks($url);
 
-            // Check for Laravel tools (Telescope, Horizon, Nova, Pulse)
-            $toolsResult = $this->checkLaravelTools($url);
-            $indicators['laravelTools'] = $toolsResult['detected'];
-            $detectedTools = $toolsResult['tools'];
-
-            // Check if index.php works
-            $indicators['indexPhp'] = $this->checkIndexPhp($url);
-
-            // Check /up endpoint (Laravel 11+ health check)
-            $indicators['upEndpoint'] = $this->checkUpEndpoint($url);
+            // Extract results from parallel checks
+            $indicators['laravel404'] = $parallelChecks['laravel404']['detected'];
+            $laravel404CheckStatus = $parallelChecks['laravel404']['status'];
+            $indicators['laravelTools'] = $parallelChecks['laravelTools']['detected'];
+            $detectedTools = $parallelChecks['laravelTools']['tools'];
+            $indicators['indexPhp'] = $parallelChecks['indexPhp'];
+            $indicators['upEndpoint'] = $parallelChecks['upEndpoint'];
 
         } catch (\Exception $e) {
             Log::error('Laravel detection error: '.$e->getMessage());
@@ -498,5 +494,128 @@ class LaravelDetectorService
 
         // Low confidence - use the raw calculation
         return round(($score / self::TOTAL_INDICATORS) * 100);
+    }
+
+    /**
+     * Run multiple independent checks in parallel for better performance.
+     *
+     * @param  string  $url  The base URL to check
+     * @return array{laravel404: array{detected: bool, status: string}, laravelTools: array{detected: bool, tools: array<string>}, indexPhp: bool, upEndpoint: bool}
+     */
+    private function runParallelChecks(string $url): array
+    {
+        // Prepare URLs for parallel requests
+        $randomPath = '/laravel-detector-check-'.bin2hex(random_bytes(8));
+        $testUrl404 = rtrim($url, '/').$randomPath;
+        $testUrlUp = rtrim($url, '/').'/up';
+
+        // Parse URL for index.php check
+        $parsedUrl = parse_url($url);
+        $baseUrl = ($parsedUrl['scheme'] ?? 'https').'://'.($parsedUrl['host'] ?? '');
+        $path = $parsedUrl['path'] ?? '/';
+        $testUrlIndexPhp = ($path === '/') ? $baseUrl.'/index.php' : $baseUrl.'/index.php'.$path;
+
+        // Tools to check
+        $tools = ['telescope', 'horizon', 'nova', 'pulse'];
+
+        // Build pool of requests (Note: pool returns numeric indices, not named keys)
+        [$response404, $responseUp, $responseIndexPhp, $responseTelescope, $responseHorizon, $responseNova, $responsePulse] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $testUrlIndexPhp, $url) {
+            $headers = [
+                'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            ];
+
+            return [
+                // 404 check
+                $pool->timeout(5)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($testUrl404),
+                // /up endpoint check
+                $pool->timeout(3)->withHeaders($headers)->get($testUrlUp),
+                // index.php check
+                $pool->timeout(5)->withHeaders($headers)->get($testUrlIndexPhp),
+                // Laravel tools checks
+                $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/telescope'),
+                $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/horizon'),
+                $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/nova'),
+                $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/pulse'),
+            ];
+        });
+
+        // Process 404 check result
+        $laravel404 = ['detected' => false, 'status' => 'not-checked'];
+        try {
+            if ($response404->status() === 404) {
+                $html = $response404->body();
+                $indicators = [
+                    str_contains($html, '<title>404') || str_contains($html, '<title>Not Found'),
+                    str_contains($html, 'min-h-screen'),
+                    str_contains($html, 'bg-gray-100'),
+                    str_contains($html, 'text-gray-500'),
+                    str_contains($html, 'antialiased'),
+                    str_contains($html, 'PAGE NOT FOUND'),
+                    str_contains($html, 'laravel') || str_contains($html, 'Laravel'),
+                    str_contains($html, 'Oops!'),
+                    str_contains($html, 'We could not find the page'),
+                    str_contains($html, 'max-w-xl'),
+                    str_contains($html, 'mx-auto'),
+                    (str_contains($html, '<svg') && str_contains($html, '404')),
+                ];
+                $matchCount = count(array_filter($indicators));
+                $laravel404 = [
+                    'detected' => $matchCount >= 3,
+                    'status' => $matchCount >= 3 ? 'found' : 'not-found',
+                ];
+            } else {
+                $laravel404['status'] = 'no-404';
+            }
+        } catch (\Exception $e) {
+            $laravel404['status'] = 'failed';
+        }
+
+        // Process Laravel tools results
+        $detectedTools = [];
+        $toolResponses = [$responseTelescope, $responseHorizon, $responseNova, $responsePulse];
+        $toolNames = ['Telescope', 'Horizon', 'Nova', 'Pulse'];
+
+        foreach ($toolResponses as $index => $toolResponse) {
+            try {
+                if (in_array($toolResponse->status(), [401, 403])) {
+                    $detectedTools[] = $toolNames[$index];
+                }
+            } catch (\Exception $e) {
+                // Ignore errors for individual tools
+            }
+        }
+
+        // Process index.php check
+        $indexPhpDetected = false;
+        try {
+            if ($responseIndexPhp->successful()) {
+                $indexPhpDetected = true;
+            }
+        } catch (\Exception $e) {
+            // Ignore error
+        }
+
+        // Process /up endpoint check
+        $upEndpointDetected = false;
+        try {
+            if ($responseUp->successful()) {
+                $body = trim($responseUp->body());
+                if (strlen($body) < 100) {
+                    $upEndpointDetected = true;
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignore error
+        }
+
+        return [
+            'laravel404' => $laravel404,
+            'laravelTools' => [
+                'detected' => count($detectedTools) > 0,
+                'tools' => $detectedTools,
+            ],
+            'indexPhp' => $indexPhpDetected,
+            'upEndpoint' => $upEndpointDetected,
+        ];
     }
 }

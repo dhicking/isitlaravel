@@ -16,16 +16,39 @@ class LaravelDetectorServiceTest extends TestCase
         $this->service = new LaravelDetectorService;
     }
 
+    /**
+     * Helper method to create base fakes for parallel requests
+     */
+    private function fakeParallelRequests(?callable $callback = null): void
+    {
+        Http::fake(function ($request) use ($callback) {
+            $url = $request->url();
+            
+            // If callback provided, let it handle the request first
+            if ($callback) {
+                $response = $callback($request);
+                if ($response !== null) {
+                    return $response;
+                }
+            }
+            
+            // Default 404 for everything else
+            return Http::response('', 404);
+        });
+    }
+
     public function test_detects_laravel_with_xsrf_token_cookie(): void
     {
-        Http::fake([
-            'https://example.com' => Http::response(
-                '<html><body>Test</body></html>',
-                200,
-                ['Set-Cookie' => 'XSRF-TOKEN=test123']
-            ),
-            'https://example.com/*' => Http::response('', 404),
-        ]);
+        $this->fakeParallelRequests(function ($request) {
+            if ($request->url() === 'https://example.com') {
+                return Http::response(
+                    '<html><body>Test</body></html>',
+                    200,
+                    ['Set-Cookie' => 'XSRF-TOKEN=test123']
+                );
+            }
+            return null;
+        });
 
         $result = $this->service->detect('example.com');
 
@@ -135,11 +158,16 @@ class LaravelDetectorServiceTest extends TestCase
 
     public function test_detects_up_endpoint(): void
     {
-        Http::fake([
-            'https://example.com' => Http::response('<html><body>Test</body></html>', 200),
-            'https://example.com/up' => Http::response('', 200),
-            'https://example.com/*' => Http::response('', 404),
-        ]);
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if (str_ends_with($url, '/up')) {
+                return Http::response('', 200);
+            }
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            return null;
+        });
 
         $result = $this->service->detect('example.com');
 
