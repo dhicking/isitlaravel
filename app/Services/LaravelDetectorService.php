@@ -196,7 +196,7 @@ class LaravelDetectorService
             $indicators['upEndpoint'] = $parallelChecks['upEndpoint'];
 
         } catch (\Exception $e) {
-            Log::error('Laravel detection error: '.$e->getMessage());
+            $this->logException('error', 'Laravel detection error', $url, $e);
 
             $errorMessage = $e->getMessage();
 
@@ -307,7 +307,7 @@ class LaravelDetectorService
                 'status' => 'no-404',
             ];
         } catch (\Exception $e) {
-            Log::warning('Laravel 404 check failed: '.$e->getMessage());
+            $this->logException('warning', 'Laravel 404 check failed', $url, $e);
 
             return [
                 'detected' => false,
@@ -507,6 +507,41 @@ class LaravelDetectorService
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Log exceptions with sanitized URL and message.
+     */
+    private function logException(string $level, string $context, string $url, \Throwable $exception): void
+    {
+        $host = $this->sanitizeUrlForLog($url);
+        $message = $this->sanitizeLogMessage($exception->getMessage());
+
+        Log::log($level, "{$context} for {$host}: {$message}");
+    }
+
+    /**
+     * Remove URLs from a log message.
+     */
+    private function sanitizeLogMessage(string $message): string
+    {
+        $sanitized = preg_replace('/https?:\/\/[^\s]+/i', '[url]', $message);
+
+        if (is_string($sanitized) && $sanitized !== '') {
+            return $sanitized;
+        }
+
+        return '[redacted]';
+    }
+
+    /**
+     * Extract host for log context.
+     */
+    private function sanitizeUrlForLog(string $url): string
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return $host ?: '[url]';
     }
 
     /**
