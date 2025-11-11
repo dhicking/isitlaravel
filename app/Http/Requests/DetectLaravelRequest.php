@@ -40,4 +40,16 @@ class DetectLaravelRequest extends FormRequest
             'url.max' => 'The URL is too long. Please use a URL with 500 characters or less.',
         ];
     }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'url' => 'website URL',
+        ];
+    }
 }

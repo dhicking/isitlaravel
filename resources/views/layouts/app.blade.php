@@ -18,6 +18,30 @@
     <meta name="twitter:title" content="@yield('og_title', 'Is It Laravel?')">
     <meta name="twitter:description" content="@yield('og_description', 'Detect if any website is built with Laravel. We check cookies, CSRF tokens, build tools, and more.')">
     <meta name="twitter:image" content="{{ asset('og-image.png') }}">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {!! json_encode([
+        '@context' => 'https://schema.org',
+        '@type' => 'WebApplication',
+        'name' => 'Is It Laravel?',
+        'description' => 'Detect if any website is built with Laravel. We check cookies, CSRF tokens, build tools, and more.',
+        'url' => url('/'),
+        'applicationCategory' => 'DeveloperApplication',
+        'operatingSystem' => 'Web',
+        'offers' => [
+            '@type' => 'Offer',
+            'price' => '0',
+            'priceCurrency' => 'USD',
+        ],
+        'author' => [
+            '@type' => 'Person',
+            'name' => 'Dave Hicking',
+            'url' => 'https://davehicking.com',
+        ],
+    ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    </script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">

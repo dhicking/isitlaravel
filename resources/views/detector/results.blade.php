@@ -29,9 +29,20 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Error Analyzing Website</h2>
-                    <p class="text-gray-600 mb-1">{{ $result['error'] }}</p>
-                    <p class="text-sm text-gray-500 mb-6">URL: <span class="break-all">{{ $result['url'] }}</span></p>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Unable to Analyze Website</h2>
+                    <p class="text-gray-600 mb-3 text-lg">{{ $result['error'] }}</p>
+                    <p class="text-sm text-gray-500 mb-6">
+                        <span class="font-medium">URL:</span> <span class="break-all">{{ $result['url'] }}</span>
+                    </p>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6 text-left max-w-md mx-auto">
+                        <p class="text-sm text-gray-700 mb-2"><strong>Common causes:</strong></p>
+                        <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                            <li>The website may be blocking automated requests</li>
+                            <li>The URL might be incorrect or the site may be down</li>
+                            <li>The site may require authentication to access</li>
+                            <li>Network connectivity issues</li>
+                        </ul>
+                    </div>
                     <a href="{{ route('home') }}" class="bg-laravel-red hover:bg-red-600 focus:ring-4 focus:ring-red-500 focus:ring-offset-2 text-white font-semibold px-6 py-3 rounded-lg transition-all inline-block outline-none">
                         Try Another URL
                     </a>
