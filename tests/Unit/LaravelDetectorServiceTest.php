@@ -23,7 +23,7 @@ class LaravelDetectorServiceTest extends TestCase
     {
         Http::fake(function ($request) use ($callback) {
             $url = $request->url();
-            
+
             // If callback provided, let it handle the request first
             if ($callback) {
                 $response = $callback($request);
@@ -31,7 +31,7 @@ class LaravelDetectorServiceTest extends TestCase
                     return $response;
                 }
             }
-            
+
             // Default 404 for everything else
             return Http::response('', 404);
         });
@@ -47,6 +47,7 @@ class LaravelDetectorServiceTest extends TestCase
                     ['Set-Cookie' => 'XSRF-TOKEN=test123']
                 );
             }
+
             return null;
         });
 
@@ -166,6 +167,7 @@ class LaravelDetectorServiceTest extends TestCase
             if ($url === 'https://example.com') {
                 return Http::response('<html><body>Test</body></html>', 200);
             }
+
             return null;
         });
 
@@ -258,7 +260,7 @@ class LaravelDetectorServiceTest extends TestCase
             }
 
             if ($request->method() === 'GET' && str_contains($url, 'laravel-detector-check-')) {
-                $html = <<<HTML
+                $html = <<<'HTML'
                 <html class="font-sans antialiased">
                     <body class="min-h-screen bg-gray-100">
                         <h1>Laravel</h1>
@@ -290,7 +292,7 @@ class LaravelDetectorServiceTest extends TestCase
             }
 
             if ($request->method() === 'GET' && str_contains($url, 'laravel-detector-check-')) {
-                $html = <<<HTML
+                $html = <<<'HTML'
                 <html class="font-sans antialiased">
                     <body class="min-h-screen bg-blue-50">
                         <h1>Oops! Page not found</h1>
@@ -378,7 +380,7 @@ class LaravelDetectorServiceTest extends TestCase
         $result = $this->service->detect('example.com');
 
         $this->assertTrue($result['success']);
-        $this->assertEquals('high', $result['confidence']['level']);
+        $this->assertEquals('certain', $result['confidence']['level']);
         $this->assertGreaterThanOrEqual(3, $result['score']);
     }
 
@@ -410,6 +412,7 @@ class LaravelDetectorServiceTest extends TestCase
                     200
                 );
             }
+
             return null;
         });
 
@@ -429,6 +432,7 @@ class LaravelDetectorServiceTest extends TestCase
             if (str_ends_with($url, '/filament/login')) {
                 return Http::response('<html><head><title>Filament Login</title></head><body><div id="filament">Login</div></body></html>', 200);
             }
+
             return null;
         });
 
@@ -447,6 +451,7 @@ class LaravelDetectorServiceTest extends TestCase
                     200
                 );
             }
+
             return null;
         });
 
@@ -466,6 +471,7 @@ class LaravelDetectorServiceTest extends TestCase
             if (str_ends_with($url, '/cp')) {
                 return Http::response('<html><head><title>Statamic Control Panel</title></head><body>CP</body></html>', 200);
             }
+
             return null;
         });
 

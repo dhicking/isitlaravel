@@ -329,24 +329,26 @@ class LaravelDetectorService
         $emoji = '';
         $message = '';
 
+        $certaintyIndicators = [
+            $indicators['laravelTools'],
+            $indicators['filament'],
+            $indicators['statamic'],
+            $indicators['livewire'],
+            $indicators['laravelEcho'],
+            $indicators['breezeJetstream'],
+        ];
+
+        // If we detect any ecosystem packages or tooling that only exist inside Laravel,
+        // we can state with certainty that the site is running Laravel.
+        if (in_array(true, $certaintyIndicators, true)) {
+            $emoji = '✅';
+            $message = 'Definitely Laravel';
+            $cssClass = 'success';
+            $level = 'certain';
+        }
         // Laravel tools detection is an extremely strong indicator
         // If any Laravel tools are found, it's almost certainly a Laravel app
-        if ($indicators['laravelTools'] || $indicators['filament'] || $indicators['statamic']) {
-            $emoji = '🎯';
-            $message = 'Highly likely Laravel!';
-            $cssClass = 'success';
-            $level = 'high';
-        }
-        // Laravel 404 page is extremely specific to Laravel
-        // It's a dead giveaway that this is a Laravel application
-        elseif ($indicators['laravel404']) {
-            $emoji = '🎯';
-            $message = 'Highly likely Laravel!';
-            $cssClass = 'success';
-            $level = 'high';
-        }
-        // Inertia and Livewire are also Laravel-specific frameworks
-        elseif ($indicators['inertia'] || $indicators['livewire']) {
+        elseif ($indicators['laravel404'] || $indicators['inertia']) {
             $emoji = '🎯';
             $message = 'Highly likely Laravel!';
             $cssClass = 'success';
@@ -554,9 +556,21 @@ class LaravelDetectorService
      */
     private function calculatePercentage(int $score, array $indicators, string $confidenceLevel): int
     {
-        // If we detected Laravel tools, Laravel 404 page, Inertia, or Livewire, confidence should be very high
-        if ($indicators['laravelTools'] || $indicators['filament'] || $indicators['statamic'] || $indicators['laravel404'] || $indicators['inertia'] || $indicators['livewire']) {
-            // Base high confidence, adjusted by total indicators found
+        $certaintyIndicators = [
+            $indicators['laravelTools'],
+            $indicators['filament'],
+            $indicators['statamic'],
+            $indicators['livewire'],
+            $indicators['laravelEcho'],
+            $indicators['breezeJetstream'],
+        ];
+
+        if (in_array(true, $certaintyIndicators, true)) {
+            return 100;
+        }
+
+        // If we detected Laravel 404 page or Inertia, confidence should be very high
+        if ($indicators['laravel404'] || $indicators['inertia']) {
             return min(95, 85 + ($score * 2));
         }
 
