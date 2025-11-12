@@ -111,7 +111,7 @@ class LaravelDetectorServiceTest extends TestCase
     {
         Http::fake([
             'https://example.com' => Http::response(
-                '<html><head><script src="/build/assets/app-abc123.js"></script></head></html>',
+                '<html><head><script src="/build/assets/@vite/app-abc123.js"></script></head></html>',
                 200
             ),
             'https://example.com/*' => Http::response('', 404),
@@ -127,7 +127,7 @@ class LaravelDetectorServiceTest extends TestCase
     {
         Http::fake([
             'https://example.com' => Http::response(
-                '<html><body><div id="app" data-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{}}">Test</div></body></html>',
+                '<html><head><script src="/build/assets/@vite/app.js"></script></head><body><div id="app" data-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{&quot;_token&quot;:&quot;abc123&quot;}}">Test</div></body></html>',
                 200
             ),
             'https://example.com/*' => Http::response('', 404),
@@ -479,5 +479,299 @@ class LaravelDetectorServiceTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertTrue($result['indicators']['statamic']);
+    }
+
+    public function test_detects_telescope_signature(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/telescope')) {
+                $html = '<html><head><link rel="stylesheet" href="/telescope/app.css"><script src="/vendor/telescope/app.js"></script></head><body><div id="telescope">Telescope</div></body></html>';
+
+                return Http::response($html, 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelTools']);
+        $this->assertContains('Telescope', $result['detectedTools']);
+    }
+
+    public function test_detects_horizon_signature(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/horizon')) {
+                $html = '<html><head><link rel="stylesheet" href="/horizon/app.css"></head><body><div id="horizon" data-horizon="true">Horizon</div><script>window.horizon = {};</script></body></html>';
+
+                return Http::response($html, 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelTools']);
+        $this->assertContains('Horizon', $result['detectedTools']);
+    }
+
+    public function test_detects_nova_signature(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/nova')) {
+                $html = '<html><head><link rel="stylesheet" href="/nova/app.css"></head><body><div id="nova" data-nova="true">Nova</div><script>window.nova = {};</script></body></html>';
+
+                return Http::response($html, 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelTools']);
+        $this->assertContains('Nova', $result['detectedTools']);
+    }
+
+    public function test_detects_pulse_signature(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/pulse')) {
+                $html = '<html><head><link rel="stylesheet" href="/pulse/app.css"></head><body><div id="pulse" data-pulse="true">Pulse</div><script>window.pulse = {};</script></body></html>';
+
+                return Http::response($html, 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelTools']);
+        $this->assertContains('Pulse', $result['detectedTools']);
+    }
+
+    public function test_detects_laravel_tools_with_401_response(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/telescope')) {
+                return Http::response('Unauthorized', 401);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelTools']);
+        $this->assertContains('Telescope', $result['detectedTools']);
+    }
+
+    public function test_detects_laravel_tools_with_403_response(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/horizon')) {
+                return Http::response('Forbidden', 403);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelTools']);
+        $this->assertContains('Horizon', $result['detectedTools']);
+    }
+
+    public function test_does_not_detect_inertia_without_laravel_indicators(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body><div id="app" data-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{}}">Test</div></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertFalse($result['indicators']['inertia']);
+    }
+
+    public function test_detects_inertia_with_laravel_mix(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head><script src="/js/app.js"></script><script>laravel-mix = {}</script></head><body><div id="app" data-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{}}">Test</div></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['inertia']);
+    }
+
+    public function test_detects_inertia_with_csrf_header_and_errors(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head><meta name="x-csrf-token" content="abc123"><script src="/build/assets/@vite/app.js"></script></head><body><div id="app" data-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{&quot;errors&quot;:{}}}">Test</div></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['inertia']);
+    }
+
+    public function test_detects_powered_by_header(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body>Test</body></html>',
+                200,
+                ['X-Powered-By' => 'Laravel']
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['poweredByHeader']);
+        $this->assertEquals('certain', $result['confidence']['level']);
+        $this->assertEquals(100, $result['percentage']);
+    }
+
+    public function test_detects_powered_by_header_case_insensitive(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body>Test</body></html>',
+                200,
+                ['X-Powered-By' => 'LARAVEL Framework']
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['poweredByHeader']);
+    }
+
+    public function test_does_not_detect_inertia_with_unparseable_data_page(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body><div id="app" data-page="invalid-json">Test</div></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertFalse($result['indicators']['inertia']);
+    }
+
+    public function test_detects_laravel_session_cookie_case_insensitive(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body>Test</body></html>',
+                200,
+                ['Set-Cookie' => 'LARAVEL_SESSION=test123']
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelSession']);
+        $this->assertEquals('certain', $result['confidence']['level']);
+        $this->assertEquals(100, $result['percentage']);
+    }
+
+    public function test_detects_xsrf_token_cookie_case_variations(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body>Test</body></html>',
+                200,
+                ['Set-Cookie' => 'xsrf-token=test123']
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['xsrfToken']);
+    }
+
+    public function test_detects_vite_with_different_patterns(): void
+    {
+        $patterns = [
+            '<script src="/build/assets/@vite/app.js"></script>',
+            '<link href="/build/assets/@vite/app.css" rel="stylesheet">',
+            '<script src="/build/assets/@vite/client"></script>',
+        ];
+
+        foreach ($patterns as $pattern) {
+            Http::fake([
+                'https://example.com' => Http::response(
+                    "<html><head>{$pattern}</head><body>Test</body></html>",
+                    200
+                ),
+                'https://example.com/*' => Http::response('', 404),
+            ]);
+
+            $result = $this->service->detect('example.com');
+
+            $this->assertTrue($result['success'], "Failed for pattern: {$pattern}");
+            $this->assertTrue($result['indicators']['viteClient'], "Failed for pattern: {$pattern}");
+        }
     }
 }
