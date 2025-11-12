@@ -8,7 +8,7 @@ Route::get('/', [DetectorController::class, 'index'])
     ->middleware('throttle:60,1') // 60 requests per minute for homepage
     ->name('home');
 Route::post('/detect', [DetectorController::class, 'detect'])
-    ->middleware('throttle:10,1') // 10 requests per minute for detection (prevents abuse)
+    ->middleware('throttle:20,1') // 20 requests per minute for detection (prevents abuse)
     ->name('detect');
 Route::get('/results', [DetectorController::class, 'results'])
     ->middleware('throttle:60,1') // 60 requests per minute for results page
