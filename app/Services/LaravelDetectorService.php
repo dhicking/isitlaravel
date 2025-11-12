@@ -122,10 +122,13 @@ class LaravelDetectorService
             // Check cookies
             foreach ($cookies as $cookie) {
                 $cookieName = $cookie->getName();
-                if (str_contains(strtolower($cookieName), 'xsrf-token')) {
+                // Laravel's exact cookie name is XSRF-TOKEN (case-sensitive in practice)
+                // Check for exact match or case-insensitive match of the exact name
+                if (strcasecmp($cookieName, 'XSRF-TOKEN') === 0 || strcasecmp($cookieName, 'xsrf-token') === 0) {
                     $indicators['xsrfToken'] = true;
                 }
-                if (str_contains(strtolower($cookieName), 'laravel_session')) {
+                // laravel_session is very specific to Laravel - exact match
+                if (strcasecmp($cookieName, 'laravel_session') === 0) {
                     $indicators['laravelSession'] = true;
                 }
             }
@@ -339,17 +342,21 @@ class LaravelDetectorService
         $emoji = '';
         $message = '';
 
+        // Indicators that are 100% definitive (single indicator = definitely Laravel)
         $certaintyIndicators = [
-            $indicators['laravelTools'],
-            $indicators['filament'],
-            $indicators['statamic'],
-            $indicators['livewire'],
-            $indicators['laravelEcho'],
-            $indicators['breezeJetstream'],
+            $indicators['laravelTools'],      // Telescope, Horizon, Nova, Pulse
+            $indicators['filament'],           // Laravel admin panel
+            $indicators['statamic'],           // Laravel-based CMS
+            $indicators['livewire'],           // Laravel Livewire
+            $indicators['laravelEcho'],        // Laravel Echo
+            $indicators['breezeJetstream'],    // Laravel auth starter kits
+            $indicators['laravelSession'],     // laravel_session cookie (very specific)
+            $indicators['poweredByHeader'],    // X-Powered-By: Laravel header
+            $indicators['bladeComments'],      // {{-- Blade comments (unique to Blade)
         ];
 
         // If we detect any ecosystem packages or tooling that only exist inside Laravel,
-        // we can state with certainty that the site is running Laravel.
+        // or core Laravel-specific indicators, we can state with certainty that the site is running Laravel.
         if (in_array(true, $certaintyIndicators, true)) {
             $emoji = '✅';
             $message = 'Definitely Laravel';
@@ -602,6 +609,7 @@ class LaravelDetectorService
      */
     private function calculatePercentage(int $score, array $indicators, string $confidenceLevel): int
     {
+        // Indicators that are 100% definitive
         $certaintyIndicators = [
             $indicators['laravelTools'],
             $indicators['filament'],
@@ -609,6 +617,9 @@ class LaravelDetectorService
             $indicators['livewire'],
             $indicators['laravelEcho'],
             $indicators['breezeJetstream'],
+            $indicators['laravelSession'],     // laravel_session cookie
+            $indicators['poweredByHeader'],    // X-Powered-By: Laravel
+            $indicators['bladeComments'],      // {{-- Blade comments
         ];
 
         if (in_array(true, $certaintyIndicators, true)) {
