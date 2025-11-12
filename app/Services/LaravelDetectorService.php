@@ -159,6 +159,7 @@ class LaravelDetectorService
             }
 
             // Check for Inertia.js
+            // Inertia.js is framework-agnostic, so we only count it if Laravel-specific patterns are found
             if ($this->containsPattern($html, 'data-page')) {
                 // Try to extract component name and check for Laravel-specific patterns
                 if (preg_match('/data-page=["\']([^"\']+)["\']/', $html, $matches)) {
@@ -168,11 +169,13 @@ class LaravelDetectorService
                     }
 
                     // Check if Inertia data contains Laravel-specific indicators
+                    // Only count as indicator if Laravel-specific patterns are found
                     $hasLaravelInertia = $this->detectLaravelInertia($pageData, $html);
                     $indicators['inertia'] = $hasLaravelInertia;
                 } else {
-                    // If we can't parse data-page, just mark as detected (less reliable)
-                    $indicators['inertia'] = true;
+                    // If we can't parse data-page, we can't verify it's Laravel
+                    // Don't count it as an indicator (could be Rails, Django, etc.)
+                    $indicators['inertia'] = false;
                 }
             }
 
@@ -1156,28 +1159,26 @@ class LaravelDetectorService
         $lowerHtml = strtolower($html);
 
         // Check for Laravel-specific patterns in Inertia setup
-        // 1. Laravel CSRF token handling in Inertia
-        $hasLaravelCsrf = str_contains($lowerHtml, 'x-csrf-token')
-            || str_contains($lowerHtml, 'x-inertia')
-            || (isset($pageData['props']) && is_array($pageData['props']) && isset($pageData['props']['_token']));
+        // 1. Laravel CSRF token in props (most reliable - Laravel-specific)
+        $hasLaravelToken = isset($pageData['props']) && is_array($pageData['props']) && isset($pageData['props']['_token']);
 
-        // 2. Laravel asset paths combined with Inertia
-        // Prioritize Laravel-specific patterns (@vite is unique to Laravel)
-        // /build/ is too generic (could be WordPress Sage, ProcessWire, etc.)
+        // 2. Laravel asset paths combined with Inertia (most reliable indicators)
+        // @vite is unique to Laravel, laravel-mix is Laravel-specific
         $hasLaravelAssets = str_contains($lowerHtml, '@vite')
-            || str_contains($lowerHtml, 'laravel-mix')
-            || (str_contains($lowerHtml, '/build/') && str_contains($lowerHtml, 'laravel'));
+            || str_contains($lowerHtml, 'laravel-mix');
 
-        // 3. Laravel-specific error handling in Inertia responses
-        $hasLaravelErrors = isset($pageData['props']['errors'])
-            || isset($pageData['props']['flash']);
+        // 3. Laravel CSRF headers (less reliable - could be other frameworks, but combined with other checks)
+        $hasLaravelCsrfHeader = str_contains($lowerHtml, 'x-csrf-token');
 
-        // 4. Check if Inertia is combined with other Laravel indicators we've already detected
-        // (This will be checked at the confidence level, not here)
+        // 4. Laravel-specific error handling patterns
+        // These are common in Laravel but could exist elsewhere, so we require combination
+        $hasLaravelErrors = (isset($pageData['props']['errors']) || isset($pageData['props']['flash']))
+            && ($hasLaravelToken || $hasLaravelAssets);
 
-        // Require at least one Laravel-specific indicator
-        // If none are found, Inertia could be from Rails, Django, etc.
-        return $hasLaravelCsrf || $hasLaravelAssets || $hasLaravelErrors;
+        // Require at least one strong Laravel-specific indicator
+        // Strong indicators: _token in props, @vite, or laravel-mix
+        // Weak indicators (errors/flash) only count if combined with strong indicators
+        return $hasLaravelToken || $hasLaravelAssets || ($hasLaravelCsrfHeader && $hasLaravelErrors);
     }
 
     /**
