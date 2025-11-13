@@ -157,6 +157,55 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertEquals(1, $result['livewireCount']);
     }
 
+    public function test_detects_flux_ui(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head><link rel="stylesheet" href="/vendor/flux/app.css"></head><body><div class="flux-button">Test</div><script src="/vendor/flux/app.js"></script></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['flux']);
+    }
+
+    public function test_detects_flux_ui_with_components(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body><x-flux::button>Click</x-flux::button><div id="flux" class="flux-container">Content</div></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['flux']);
+    }
+
+    public function test_does_not_detect_flux_with_single_indicator(): void
+    {
+        // Flux detection requires at least 2 indicators to reduce false positives
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body><div class="flux-button">Test</div></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertFalse($result['indicators']['flux']);
+    }
+
     public function test_detects_up_endpoint(): void
     {
         $this->fakeParallelRequests(function ($request) {

@@ -13,7 +13,7 @@ class LaravelDetectorService
 
     private const LOW_CONFIDENCE_THRESHOLD = 1;
 
-    private const TOTAL_INDICATORS = 17;
+    private const TOTAL_INDICATORS = 18;
 
     /**
      * Cache TTL in minutes for detection results.
@@ -54,6 +54,7 @@ class LaravelDetectorService
             'viteClient' => false,
             'inertia' => false,
             'livewire' => false,
+            'flux' => false,
             'laravel404' => false,
             'laravelTools' => false,
             'mixManifest' => false,
@@ -192,6 +193,11 @@ class LaravelDetectorService
                     $livewireCount = count($matches[0]);
                     break;
                 }
+            }
+
+            // Check for Flux UI (requires Livewire, which requires Laravel)
+            if ($this->detectFlux($html)) {
+                $indicators['flux'] = true;
             }
 
             // Check Laravel 404 page
@@ -348,6 +354,7 @@ class LaravelDetectorService
             $indicators['filament'],           // Laravel admin panel
             $indicators['statamic'],           // Laravel-based CMS
             $indicators['livewire'],           // Laravel Livewire
+            $indicators['flux'],               // Flux UI (requires Livewire, which requires Laravel)
             $indicators['laravelEcho'],        // Laravel Echo
             $indicators['breezeJetstream'],    // Laravel auth starter kits
             $indicators['laravelSession'],     // laravel_session cookie (very specific)
@@ -615,6 +622,7 @@ class LaravelDetectorService
             $indicators['filament'],
             $indicators['statamic'],
             $indicators['livewire'],
+            $indicators['flux'],               // Flux UI (requires Livewire, which requires Laravel)
             $indicators['laravelEcho'],
             $indicators['breezeJetstream'],
             $indicators['laravelSession'],     // laravel_session cookie
@@ -1190,6 +1198,51 @@ class LaravelDetectorService
         // Strong indicators: _token in props, @vite, or laravel-mix
         // Weak indicators (errors/flash) only count if combined with strong indicators
         return $hasLaravelToken || $hasLaravelAssets || ($hasLaravelCsrfHeader && $hasLaravelErrors);
+    }
+
+    /**
+     * Detect Flux UI from HTML content.
+     *
+     * Flux UI is a component library that only works with Livewire,
+     * which only works with Laravel. Therefore, detecting Flux UI
+     * is a definitive indicator that the site is using Laravel.
+     *
+     * @param  string  $html  The HTML content
+     * @return bool True if Flux UI is detected
+     */
+    private function detectFlux(string $html): bool
+    {
+        $lower = strtolower($html);
+
+        // Check for Flux asset URLs
+        $hasFluxAssets = str_contains($lower, '/vendor/flux/')
+            || str_contains($lower, '/flux/assets/')
+            || preg_match('/flux[\/\-]assets/i', $html);
+
+        // Check for Flux-specific CSS classes (flux- prefix is common)
+        $hasFluxClasses = preg_match('/class=["\'][^"\']*flux-/i', $html)
+            || str_contains($lower, 'flux-');
+
+        // Check for Flux-specific JavaScript variables
+        $hasFluxJs = str_contains($lower, 'window.flux')
+            || str_contains($lower, 'flux.')
+            || str_contains($lower, 'laravel.flux');
+
+        // Check for Flux component identifiers
+        $hasFluxId = str_contains($lower, 'id="flux"')
+            || str_contains($lower, "id='flux'")
+            || str_contains($lower, 'data-flux');
+
+        // Check for Flux Livewire components
+        $hasFluxLivewire = str_contains($lower, '<livewire:flux')
+            || str_contains($lower, 'wire:id="flux')
+            || preg_match('/<x-flux/i', $html);
+
+        // Require at least 2 indicators to reduce false positives
+        $indicators = [$hasFluxAssets, $hasFluxClasses, $hasFluxJs, $hasFluxId, $hasFluxLivewire];
+        $matchCount = count(array_filter($indicators));
+
+        return $matchCount >= 2;
     }
 
     /**
