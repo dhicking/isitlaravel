@@ -287,6 +287,56 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['indicators']['laravelEcho']);
     }
 
+    public function test_detects_laravel_echo_with_explicit_package(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head><script src="/js/laravel-echo.js"></script></head><body>Test</body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['laravelEcho']);
+    }
+
+    public function test_does_not_detect_apple_echo_as_laravel_echo(): void
+    {
+        // Apple's Echo analytics library should not be detected as Laravel Echo
+        Http::fake([
+            'https://store.apple.com' => Http::response(
+                '<html><head><script src="https://store.storeimages.cdn-apple.com/4982/store.apple.com/static-resources/rs-echo-3.29.0-21e6e/dist/echo.min.js"></script></head><body><script>window.ECHO_CONFIG = { config: {} };</script></body></html>',
+                200
+            ),
+            'https://store.apple.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('store.apple.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertFalse($result['indicators']['laravelEcho']);
+    }
+
+    public function test_does_not_detect_generic_echo_without_broadcasting(): void
+    {
+        // Generic Echo without Laravel broadcasting patterns should not be detected
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><body><script>window.Echo = { version: "1.0" };</script></body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertFalse($result['indicators']['laravelEcho']);
+    }
+
     public function test_detects_breeze_or_jetstream_layout(): void
     {
         Http::fake([

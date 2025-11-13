@@ -917,14 +917,38 @@ class LaravelDetectorService
 
     /**
      * Detect Laravel Echo usage from the HTML content.
+     *
+     * Laravel Echo is a JavaScript library for WebSockets and event broadcasting.
+     * We need to distinguish it from other "Echo" libraries (like Apple's Echo analytics).
      */
     private function detectLaravelEcho(string $html): bool
     {
         $lower = strtolower($html);
 
-        return str_contains($lower, 'laravel-echo')
-            || str_contains($lower, 'window.echo')
-            || str_contains($lower, 'new echo(');
+        // Exclude Apple's Echo (has ECHO_CONFIG and is from Apple domains)
+        if (str_contains($lower, 'echo_config') || str_contains($lower, 'echo.config')) {
+            // Check if it's Apple's Echo (not Laravel Echo)
+            if (str_contains($lower, 'apple.com') || str_contains($lower, 'store.apple.com')) {
+                return false;
+            }
+        }
+
+        // Most reliable: explicit laravel-echo package reference
+        if (str_contains($lower, 'laravel-echo')) {
+            return true;
+        }
+
+        // Check for Laravel Echo combined with Laravel-specific broadcasting patterns
+        // Laravel Echo is typically used with Pusher, Socket.io, or Laravel broadcasting
+        $hasEchoPattern = str_contains($lower, 'window.echo') || str_contains($lower, 'new echo(');
+        $hasLaravelBroadcasting = str_contains($lower, 'pusher')
+            || str_contains($lower, 'socket.io')
+            || str_contains($lower, 'laravel broadcasting')
+            || str_contains($lower, 'broadcasting')
+            || preg_match('/\.channel\(|\.private\(|\.listen\(/i', $html);
+
+        // Require both Echo pattern AND Laravel broadcasting pattern to avoid false positives
+        return $hasEchoPattern && $hasLaravelBroadcasting;
     }
 
     /**
