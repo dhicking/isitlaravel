@@ -634,7 +634,10 @@ class LaravelDetectorServiceTest extends TestCase
                 return Http::response('<html><body>Test</body></html>', 200);
             }
             if (str_ends_with($url, '/telescope')) {
-                return Http::response('Unauthorized', 401);
+                // 401 response with Telescope-specific content
+                $html = '<html><head><link rel="stylesheet" href="/telescope/app.css"><script src="/vendor/telescope/app.js"></script></head><body><div id="telescope">Unauthorized</div></body></html>';
+
+                return Http::response($html, 401);
             }
 
             return null;
@@ -655,7 +658,10 @@ class LaravelDetectorServiceTest extends TestCase
                 return Http::response('<html><body>Test</body></html>', 200);
             }
             if (str_ends_with($url, '/horizon')) {
-                return Http::response('Forbidden', 403);
+                // 403 response with Horizon-specific content
+                $html = '<html><head><link rel="stylesheet" href="/horizon/app.css"><script src="/vendor/horizon/app.js"></script></head><body><div id="horizon">Forbidden</div></body></html>';
+
+                return Http::response($html, 403);
             }
 
             return null;
@@ -666,6 +672,32 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['success']);
         $this->assertTrue($result['indicators']['laravelTools']);
         $this->assertContains('Horizon', $result['detectedTools']);
+    }
+
+    public function test_does_not_detect_tools_with_generic_403_response(): void
+    {
+        // Test that a generic 403 response (same as random path) doesn't trigger false positives
+        $generic403Body = '<html><body><h1>403 Forbidden</h1><p>Access denied</p></body></html>';
+
+        $this->fakeParallelRequests(function ($request) use ($generic403Body) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            // Return generic 403 for both tool path and random path
+            if (str_ends_with($url, '/telescope') || str_contains($url, '/random-nonexistent-')) {
+                return Http::response($generic403Body, 403);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        // Should not detect tools when 403 is generic (same as random path)
+        $this->assertFalse($result['indicators']['laravelTools']);
+        $this->assertEmpty($result['detectedTools']);
     }
 
     public function test_does_not_detect_inertia_without_laravel_indicators(): void

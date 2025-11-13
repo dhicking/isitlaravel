@@ -679,6 +679,9 @@ class LaravelDetectorService
         // Prepare URLs for parallel requests
         $randomPath = '/laravel-detector-check-'.bin2hex(random_bytes(8));
         $testUrl404 = rtrim($url, '/').$randomPath;
+        // Use a different random path for comparison with tool responses
+        $randomComparisonPath = '/random-nonexistent-'.bin2hex(random_bytes(8));
+        $testUrlRandom = rtrim($url, '/').$randomComparisonPath;
         $testUrlUp = rtrim($url, '/').'/up';
         $mixManifestUrl = rtrim($url, '/').'/mix-manifest.json';
         $filamentLoginUrl = rtrim($url, '/').'/filament/login';
@@ -688,6 +691,7 @@ class LaravelDetectorService
         // Build pool of requests (Note: pool returns numeric indices, not named keys)
         [
             $response404,
+            $responseRandom,
             $responseUp,
             $responseMixManifest,
             $responseTelescope,
@@ -697,7 +701,7 @@ class LaravelDetectorService
             $responseFilamentLogin,
             $responseAdminLogin,
             $responseStatamicCp,
-        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlUp, $mixManifestUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
+        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
@@ -705,6 +709,8 @@ class LaravelDetectorService
             return [
                 // 404 check
                 $pool->timeout(5)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($testUrl404),
+                // Random path for comparison (to detect sites that return 403 for everything)
+                $pool->timeout(3)->withHeaders($headers)->get($testUrlRandom),
                 // /up endpoint check
                 $pool->timeout(3)->withHeaders($headers)->get($testUrlUp),
                 // Mix manifest check
@@ -762,25 +768,24 @@ class LaravelDetectorService
         $toolNames = ['Telescope', 'Horizon', 'Nova', 'Pulse'];
         $toolPaths = ['telescope', 'horizon', 'nova', 'pulse'];
 
+        // Get the random path response for comparison
+        $randomResponseBody = null;
+        $randomResponseStatus = null;
+        if ($responseRandom instanceof Response) {
+            $randomResponseStatus = $responseRandom->status();
+            $randomResponseBody = $responseRandom->body();
+        }
+
         foreach ($toolResponses as $index => $toolResponse) {
             if ($toolResponse instanceof Response) {
                 $status = $toolResponse->status();
                 $toolName = $toolNames[$index];
                 $toolPath = $toolPaths[$index];
+                $html = $toolResponse->body();
+                $lowerHtml = strtolower($html);
 
-                // If we get a 403 (Forbidden) or 401 (Unauthorized), it means the route exists but is protected
-                // This is a strong indicator that the Laravel tool is installed
-                if (in_array($status, [401, 403])) {
-                    $detectedTools[] = $toolName;
-
-                    continue;
-                }
-
-                // For 200 responses, check for tool-specific signatures instead of generic keywords
+                // For 200 responses, check for tool-specific signatures
                 if ($status === 200) {
-                    $html = $toolResponse->body();
-                    $lowerHtml = strtolower($html);
-
                     // Check for tool-specific signatures
                     $isDetected = match ($toolPath) {
                         'telescope' => $this->detectTelescopeSignature($html, $lowerHtml),
@@ -793,6 +798,65 @@ class LaravelDetectorService
                     if ($isDetected) {
                         $detectedTools[] = $toolName;
                     }
+
+                    continue;
+                }
+
+                // For 403/401 responses, we need to be more careful
+                // Some sites return 403 for any non-existent route, so we can't rely on status alone
+                if (in_array($status, [401, 403])) {
+                    // First, check if the response body contains tool-specific signatures
+                    // This is the most reliable indicator
+                    $hasToolSignature = match ($toolPath) {
+                        'telescope' => $this->detectTelescopeSignature($html, $lowerHtml),
+                        'horizon' => $this->detectHorizonSignature($html, $lowerHtml),
+                        'nova' => $this->detectNovaSignature($html, $lowerHtml),
+                        'pulse' => $this->detectPulseSignature($html, $lowerHtml),
+                        default => false,
+                    };
+
+                    if ($hasToolSignature) {
+                        // Response contains tool-specific content, definitely the tool
+                        $detectedTools[] = $toolName;
+
+                        continue;
+                    }
+
+                    // If no tool signature found, compare with random path response
+                    // If both return 403 and have similar content, it's likely just a security policy
+                    if ($randomResponseStatus === $status && $randomResponseBody !== null) {
+                        $randomBody = strtolower($randomResponseBody);
+                        $toolBody = $lowerHtml;
+
+                        // Normalize whitespace for comparison
+                        $normalizedToolBody = preg_replace('/\s+/', ' ', trim($toolBody));
+                        $normalizedRandomBody = preg_replace('/\s+/', ' ', trim($randomBody));
+
+                        // If responses are very similar (within 10% length difference and high similarity),
+                        // it's likely just a generic security policy, not the actual tool
+                        $lengthDiff = abs(strlen($normalizedToolBody) - strlen($normalizedRandomBody));
+                        $maxLength = max(strlen($normalizedToolBody), strlen($normalizedRandomBody));
+
+                        // Calculate similarity (simple approach: check if they're very similar)
+                        $similarity = 0;
+                        if ($maxLength > 0) {
+                            similar_text($normalizedToolBody, $normalizedRandomBody, $similarity);
+                        }
+
+                        // If responses are very similar (>90% similarity) and similar length,
+                        // it's likely just a generic 403 page, not the tool
+                        if ($similarity > 90 && ($lengthDiff / max($maxLength, 1)) < 0.1) {
+                            // Likely just a security policy, don't count as detected
+                            continue;
+                        }
+                    }
+
+                    // If we get here, we have a 403/401 but:
+                    // - No tool signature found
+                    // - Response is different from random path (or random path didn't return 403)
+                    // This could still be the tool, but we can't be certain
+                    // For now, we'll be conservative and not count it unless we have a signature
+                    // This prevents false positives from sites with strict security policies
                 }
             }
         }
