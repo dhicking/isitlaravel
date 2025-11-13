@@ -198,6 +198,8 @@ class LaravelDetectorService
             // Check for Flux UI (requires Livewire, which requires Laravel)
             if ($this->detectFlux($html)) {
                 $indicators['flux'] = true;
+                // Flux requires Livewire, so set Livewire indicator to true
+                $indicators['livewire'] = true;
             }
 
             // Check Laravel 404 page

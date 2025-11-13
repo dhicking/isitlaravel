@@ -171,6 +171,8 @@ class LaravelDetectorServiceTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertTrue($result['indicators']['flux']);
+        // Flux requires Livewire, so Livewire should also be detected
+        $this->assertTrue($result['indicators']['livewire']);
     }
 
     public function test_detects_flux_ui_with_components(): void
@@ -187,6 +189,8 @@ class LaravelDetectorServiceTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertTrue($result['indicators']['flux']);
+        // Flux requires Livewire, so Livewire should also be detected
+        $this->assertTrue($result['indicators']['livewire']);
     }
 
     public function test_does_not_detect_flux_with_single_indicator(): void
