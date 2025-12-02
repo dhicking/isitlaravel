@@ -753,6 +753,8 @@ class LaravelDetectorService
         $viteManifestAltUrl = rtrim($url, '/').'/.vite/manifest.json';
         $loginUrl = rtrim($url, '/').'/login';
         $signupUrl = rtrim($url, '/').'/signup';
+        $registerUrl = rtrim($url, '/').'/register';
+        $signinUrl = rtrim($url, '/').'/signin';
         $filamentLoginUrl = rtrim($url, '/').'/filament/login';
         $adminLoginUrl = rtrim($url, '/').'/admin/login';
         $statamicCpUrl = rtrim($url, '/').'/cp';
@@ -767,6 +769,8 @@ class LaravelDetectorService
             $responseViteManifestAlt,
             $responseLogin,
             $responseSignup,
+            $responseRegister,
+            $responseSignin,
             $responseTelescope,
             $responseHorizon,
             $responseNova,
@@ -774,7 +778,7 @@ class LaravelDetectorService
             $responseFilamentLogin,
             $responseAdminLogin,
             $responseStatamicCp,
-        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $viteManifestUrl, $viteManifestAltUrl, $loginUrl, $signupUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
+        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $viteManifestUrl, $viteManifestAltUrl, $loginUrl, $signupUrl, $registerUrl, $signinUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
@@ -794,6 +798,8 @@ class LaravelDetectorService
                 // Common Laravel auth pages (often have strong indicators)
                 $pool->timeout(3)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($loginUrl),
                 $pool->timeout(3)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($signupUrl),
+                $pool->timeout(3)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($registerUrl),
+                $pool->timeout(3)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($signinUrl),
                 // Laravel tools checks
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/telescope'),
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/horizon'),
@@ -976,9 +982,9 @@ class LaravelDetectorService
         $filamentDetected = $this->detectFilamentFromResponses([$responseFilamentLogin, $responseAdminLogin]);
         $statamicDetected = $this->detectStatamicFromResponses([$responseStatamicCp]);
 
-        // Check login and signup pages for additional Laravel indicators
+        // Check auth pages (login, signup, register, signin) for additional Laravel indicators
         // These pages often have CSRF tokens, session cookies, Inertia components, etc.
-        $authPagesIndicators = $this->checkAuthPagesForIndicators([$responseLogin, $responseSignup]);
+        $authPagesIndicators = $this->checkAuthPagesForIndicators([$responseLogin, $responseSignup, $responseRegister, $responseSignin]);
 
         return [
             'laravel404' => $laravel404,
@@ -1268,12 +1274,12 @@ class LaravelDetectorService
     }
 
     /**
-     * Check login and signup pages for Laravel indicators.
+     * Check auth pages (login, signup, register, signin) for Laravel indicators.
      *
      * These pages often have CSRF tokens, session cookies, Inertia components, etc.
      * that might not be present on the main page.
      *
-     * @param  array<int, \Illuminate\Http\Client\Response|\Illuminate\Http\Client\ConnectionException>  $responses  Array of HTTP responses from login/signup pages
+     * @param  array<int, \Illuminate\Http\Client\Response|\Illuminate\Http\Client\ConnectionException>  $responses  Array of HTTP responses from auth pages
      * @return array{xsrfToken: bool, laravelSession: bool, csrfMeta: bool, tokenInput: bool, viteClient: bool, inertia: bool, hasLaravelInertia: bool, inertiaComponent: string|null, livewire: bool, flux: bool, statamic: bool}
      */
     private function checkAuthPagesForIndicators(array $responses): array

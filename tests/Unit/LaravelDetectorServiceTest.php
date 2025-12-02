@@ -1135,4 +1135,69 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['success']);
         $this->assertTrue($result['indicators']['statamic'], 'Statamic should be detected from signup page');
     }
+
+    public function test_detects_livewire_on_register_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/register')) {
+                return Http::response('<html><body><div wire:id="register-form-789">Register Form</div></body></html>', 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['livewire'], 'Livewire should be detected from register page');
+    }
+
+    public function test_detects_livewire_on_signin_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/signin')) {
+                return Http::response('<html><body><div wire:id="signin-form-012">Signin Form</div></body></html>', 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['livewire'], 'Livewire should be detected from signin page');
+    }
+
+    public function test_detects_csrf_token_on_register_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/register')) {
+                return Http::response(
+                    '<html><head><meta name="csrf-token" content="abc123"></head><body>Register</body></html>',
+                    200,
+                    ['Set-Cookie' => 'XSRF-TOKEN=test123']
+                );
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['xsrfToken'], 'XSRF-TOKEN should be detected from register page');
+        $this->assertTrue($result['indicators']['csrfMeta'], 'CSRF meta tag should be detected from register page');
+    }
 }
