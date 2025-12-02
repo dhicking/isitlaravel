@@ -178,8 +178,18 @@ class LaravelDetectorService
                     }
 
                     // Check if Inertia data contains Laravel-specific indicators
-                    // Only count as indicator if Laravel-specific patterns are found
-                    $hasLaravelInertia = $this->detectLaravelInertia($pageData, $html);
+                    // If we already have strong Laravel indicators (XSRF-TOKEN, Vite, etc.),
+                    // and we detect an Inertia component, it's almost certainly Laravel Inertia
+                    $hasStrongLaravelIndicators = $indicators['xsrfToken']
+                        || $indicators['laravelSession']
+                        || $indicators['viteClient']
+                        || $indicators['csrfMeta']
+                        || $indicators['tokenInput']
+                        || $indicators['poweredByHeader'];
+
+                    // Check if Inertia data contains Laravel-specific indicators
+                    // Only count as indicator if Laravel-specific patterns are found OR if we have other strong Laravel indicators
+                    $hasLaravelInertia = $this->detectLaravelInertia($pageData, $html, $hasStrongLaravelIndicators);
                     $indicators['inertia'] = $hasLaravelInertia;
                 } else {
                     // If we can't parse data-page, we can't verify it's Laravel
@@ -1315,12 +1325,22 @@ class LaravelDetectorService
      *
      * Inertia.js is framework-agnostic (works with Laravel, Rails, Django, etc.),
      * so we need to look for Laravel-specific indicators in the Inertia setup.
+     *
+     * @param  array|null  $pageData  The parsed Inertia data-page content
+     * @param  string  $html  The HTML content
+     * @param  bool  $hasStrongLaravelIndicators  Whether other strong Laravel indicators are already detected
      */
-    private function detectLaravelInertia(?array $pageData, string $html): bool
+    private function detectLaravelInertia(?array $pageData, string $html, bool $hasStrongLaravelIndicators = false): bool
     {
         // If we can't parse the data-page, we can't be sure it's Laravel
         if (! is_array($pageData)) {
             return false;
+        }
+
+        // If we already have strong Laravel indicators (XSRF-TOKEN cookie, Vite, etc.),
+        // and we detect an Inertia component, it's almost certainly Laravel Inertia
+        if ($hasStrongLaravelIndicators) {
+            return true;
         }
 
         $lowerHtml = strtolower($html);

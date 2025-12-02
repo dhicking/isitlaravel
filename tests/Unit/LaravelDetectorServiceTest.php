@@ -798,6 +798,27 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['indicators']['inertia']);
     }
 
+    public function test_detects_inertia_with_strong_laravel_indicators(): void
+    {
+        // Test that Inertia is detected when we have strong Laravel indicators
+        // (like XSRF-TOKEN cookie) even without Inertia-specific patterns
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head></head><body><div id="app" data-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{}}">Test</div></body></html>',
+                200,
+                ['Set-Cookie' => 'XSRF-TOKEN=test123']
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['xsrfToken']);
+        $this->assertTrue($result['indicators']['inertia'], 'Inertia should be detected when XSRF-TOKEN cookie is present');
+        $this->assertEquals('Dashboard', $result['inertiaComponent']);
+    }
+
     public function test_detects_powered_by_header(): void
     {
         Http::fake([
