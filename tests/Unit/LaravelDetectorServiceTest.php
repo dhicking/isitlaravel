@@ -909,4 +909,75 @@ class LaravelDetectorServiceTest extends TestCase
             $this->assertTrue($result['indicators']['viteClient'], "Failed for pattern: {$pattern}");
         }
     }
+
+    public function test_detects_vite_production_builds(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head><script type="module" src="/build/assets/app-abc123.js"></script><link href="/build/assets/app-def456.css" rel="stylesheet"></head><body>Test</body></html>',
+                200
+            ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['viteClient']);
+    }
+
+    public function test_detects_vite_manifest_file(): void
+    {
+        $viteManifest = json_encode([
+            'resources/js/app.js' => [
+                'file' => 'assets/app-abc123.js',
+                'src' => 'resources/js/app.js',
+                'isEntry' => true,
+            ],
+            'resources/css/app.css' => [
+                'file' => 'assets/app-def456.css',
+                'src' => 'resources/css/app.css',
+            ],
+        ]);
+
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head></head><body>Test</body></html>',
+                200
+            ),
+            'https://example.com/build/.vite/manifest.json' => Http::response($viteManifest, 200),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['viteClient']);
+    }
+
+    public function test_detects_vite_manifest_alternative_location(): void
+    {
+        $viteManifest = json_encode([
+            'resources/js/app.js' => [
+                'file' => 'assets/app-abc123.js',
+                'src' => 'resources/js/app.js',
+                'isEntry' => true,
+            ],
+        ]);
+
+        Http::fake([
+            'https://example.com' => Http::response(
+                '<html><head></head><body>Test</body></html>',
+                200
+            ),
+            'https://example.com/build/.vite/manifest.json' => Http::response('', 404),
+            'https://example.com/.vite/manifest.json' => Http::response($viteManifest, 200),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['viteClient']);
+    }
 }

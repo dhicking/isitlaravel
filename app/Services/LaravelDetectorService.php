@@ -154,6 +154,11 @@ class LaravelDetectorService
                 'src=["\'][^"\']*@vite',
                 'src=["\'][^"\']*@vite/client',
                 'href=["\'][^"\']*@vite',
+                // Production builds: Laravel's Vite outputs type="module" script tags with hashed filenames
+                // Pattern: <script type="module" src="/build/assets/app-[hash].js"></script>
+                // We check for type="module" combined with /build/assets/ to be more specific
+                '<script[^>]*type=["\']module["\'][^>]*src=["\'][^"\']*\/build\/assets\/[^"\']*\.js["\']',
+                '<link[^>]*href=["\'][^"\']*\/build\/assets\/[^"\']*\.css["\']',
             ];
             foreach ($vitePatterns as $pattern) {
                 if ($this->containsPattern($html, $pattern)) {
@@ -212,6 +217,10 @@ class LaravelDetectorService
             $indicators['laravelTools'] = $parallelChecks['laravelTools']['detected'];
             $detectedTools = $parallelChecks['laravelTools']['tools'];
             $indicators['mixManifest'] = $parallelChecks['mixManifest'];
+            // If Vite manifest is detected, also set viteClient indicator
+            if ($parallelChecks['viteManifest']) {
+                $indicators['viteClient'] = true;
+            }
             $indicators['filament'] = $filamentFromHtml || $parallelChecks['filament'];
             $indicators['statamic'] = $statamicFromHtml || $parallelChecks['statamic'];
             $indicators['upEndpoint'] = $parallelChecks['upEndpoint'];
@@ -669,6 +678,7 @@ class LaravelDetectorService
      *     laravel404: array{detected: bool, status: string},
      *     laravelTools: array{detected: bool, tools: array<string>},
      *     mixManifest: bool,
+     *     viteManifest: bool,
      *     filament: bool,
      *     statamic: bool,
      *     upEndpoint: bool
@@ -684,6 +694,8 @@ class LaravelDetectorService
         $testUrlRandom = rtrim($url, '/').$randomComparisonPath;
         $testUrlUp = rtrim($url, '/').'/up';
         $mixManifestUrl = rtrim($url, '/').'/mix-manifest.json';
+        $viteManifestUrl = rtrim($url, '/').'/build/.vite/manifest.json';
+        $viteManifestAltUrl = rtrim($url, '/').'/.vite/manifest.json';
         $filamentLoginUrl = rtrim($url, '/').'/filament/login';
         $adminLoginUrl = rtrim($url, '/').'/admin/login';
         $statamicCpUrl = rtrim($url, '/').'/cp';
@@ -694,6 +706,8 @@ class LaravelDetectorService
             $responseRandom,
             $responseUp,
             $responseMixManifest,
+            $responseViteManifest,
+            $responseViteManifestAlt,
             $responseTelescope,
             $responseHorizon,
             $responseNova,
@@ -701,7 +715,7 @@ class LaravelDetectorService
             $responseFilamentLogin,
             $responseAdminLogin,
             $responseStatamicCp,
-        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
+        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $viteManifestUrl, $viteManifestAltUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
@@ -715,6 +729,9 @@ class LaravelDetectorService
                 $pool->timeout(3)->withHeaders($headers)->get($testUrlUp),
                 // Mix manifest check
                 $pool->timeout(3)->withHeaders($headers)->get($mixManifestUrl),
+                // Vite manifest checks (Laravel's Vite plugin creates these)
+                $pool->timeout(3)->withHeaders($headers)->get($viteManifestUrl),
+                $pool->timeout(3)->withHeaders($headers)->get($viteManifestAltUrl),
                 // Laravel tools checks
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/telescope'),
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/horizon'),
@@ -883,6 +900,17 @@ class LaravelDetectorService
             // Ignore error
         }
 
+        $viteManifestDetected = false;
+        try {
+            // Check both possible Vite manifest locations
+            if (($responseViteManifest instanceof Response && $responseViteManifest->successful() && $this->isValidViteManifest($responseViteManifest->body()))
+                || ($responseViteManifestAlt instanceof Response && $responseViteManifestAlt->successful() && $this->isValidViteManifest($responseViteManifestAlt->body()))) {
+                $viteManifestDetected = true;
+            }
+        } catch (\Exception $e) {
+            // Ignore error
+        }
+
         $filamentDetected = $this->detectFilamentFromResponses([$responseFilamentLogin, $responseAdminLogin]);
         $statamicDetected = $this->detectStatamicFromResponses([$responseStatamicCp]);
 
@@ -893,6 +921,7 @@ class LaravelDetectorService
                 'tools' => $detectedTools,
             ],
             'mixManifest' => $mixManifestDetected,
+            'viteManifest' => $viteManifestDetected,
             'filament' => $filamentDetected,
             'statamic' => $statamicDetected,
             'upEndpoint' => $upEndpointDetected,
@@ -913,6 +942,35 @@ class LaravelDetectorService
         $keys = array_keys($decoded);
 
         return collect($keys)->contains(fn ($key) => str_contains($key, '/js/') || str_contains($key, '/css/'));
+    }
+
+    /**
+     * Determine if the provided content looks like a Laravel Vite manifest.
+     *
+     * Laravel's Vite plugin creates a manifest.json file that maps source files to built assets.
+     * The manifest structure is: { "resources/js/app.js": { "file": "assets/app-abc123.js", ... } }
+     */
+    private function isValidViteManifest(string $content): bool
+    {
+        $decoded = json_decode($content, true);
+
+        if (! is_array($decoded) || empty($decoded)) {
+            return false;
+        }
+
+        // Vite manifest has source file paths as keys, and each value is an object with 'file' property
+        // Check if we have at least one entry with a 'file' property pointing to built assets
+        foreach ($decoded as $sourcePath => $entry) {
+            if (is_array($entry) && isset($entry['file'])) {
+                $file = $entry['file'];
+                // Laravel Vite builds typically output to /build/assets/ or /assets/
+                if (str_contains($file, '/assets/') || str_contains($file, 'assets/')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

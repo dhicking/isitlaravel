@@ -13,11 +13,11 @@
     <div class="max-w-5xl mx-auto mb-6">
         <a href="{{ route('home') }}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded transition-colors outline-none">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
             Back
-        </a>
-    </div>
+            </a>
+        </div>
 
     <main id="main-content" class="max-w-5xl mx-auto">
         @if(!$result['success'])
@@ -54,7 +54,7 @@
                 <div class="text-center">
                     <div class="text-6xl mb-4" role="img" aria-label="Confidence level: {{ $result['confidence']['message'] }}">{{ $result['confidence']['emoji'] }}</div>
                     <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                        {{ $result['confidence']['message'] }}
+                            {{ $result['confidence']['message'] }}
                     </h1>
                     <div class="flex items-center justify-center gap-2 mb-6">
                         @if(!empty($result['faviconUrl']))
@@ -212,13 +212,13 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                     <p id="copy-url-feedback" class="mt-2 text-xs text-green-600 hidden" role="status" aria-live="polite">
                         Link copied to clipboard!
                     </p>
-                </div>
-            </div>
+                        </div>
+                    </div>
 
-            <!-- Special Features Found -->
+                    <!-- Special Features Found -->
             @if($result['inertiaComponent'] || $result['livewireCount'] > 0 || !empty($result['detectedTools']))
                 <div class="grid gap-4 mb-6">
-                    @if($result['inertiaComponent'])
+                            @if($result['inertiaComponent'])
                         <div class="bg-white rounded-xl border border-blue-200 p-4">
                             <div class="flex items-start gap-3">
                                 <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
@@ -226,15 +226,15 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                                         <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
                                     </svg>
                                 </div>
-                                <div>
+                                        <div>
                                     <div class="font-semibold text-gray-900 text-sm mb-1">Inertia.js Component Detected</div>
                                     <code class="text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded">{{ $result['inertiaComponent'] }}</code>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    @endif
+                            @endif
 
-                    @if($result['livewireCount'] > 0)
+                            @if($result['livewireCount'] > 0)
                         <div class="bg-white rounded-xl border border-purple-200 p-4">
                             <div class="flex items-start gap-3">
                                 <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
@@ -242,7 +242,7 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                                         <path d="M13 2.05v3.03c3.39.49 6 3.39 6 6.92 0 .9-.18 1.75-.48 2.54l2.6 1.53c.56-1.24.88-2.62.88-4.07 0-5.18-3.95-9.45-9-9.95zM12 19c-3.87 0-7-3.13-7-7 0-3.53 2.61-6.43 6-6.92V2.05c-5.06.5-9 4.76-9 9.95 0 5.52 4.47 10 9.99 10 3.31 0 6.24-1.61 8.06-4.09l-2.6-1.53C16.17 17.98 14.21 19 12 19z"/>
                                     </svg>
                                 </div>
-                                <div>
+                                        <div>
                                     <div class="font-semibold text-gray-900 text-sm mb-1">Livewire Components Detected</div>
                                     <span class="text-xs text-purple-700">{{ $result['livewireCount'] }} component{{ $result['livewireCount'] !== 1 ? 's' : '' }} found on page</span>
                                 </div>
@@ -258,7 +258,7 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                </div>
+                                        </div>
                                 <div>
                                     <div class="font-semibold text-gray-900 text-sm mb-2">Laravel Tools Detected</div>
                                     <div class="flex flex-wrap gap-2">
@@ -269,40 +269,40 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                                 </div>
                             </div>
                         </div>
+                            @endif
+                        </div>
                     @endif
-                </div>
-            @endif
 
-            <!-- Detection Indicators -->
+                    <!-- Detection Indicators -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-6">Detection Indicators</h3>
                 
                 <div class="grid md:grid-cols-3 gap-6">
-                    <!-- Core Laravel -->
+                        <!-- Core Laravel -->
                     <div>
                         <h4 class="font-semibold text-gray-900 text-sm mb-3 flex items-center gap-2">
                             <span class="text-lg" aria-hidden="true">📦</span>
-                            Core Laravel
+                                Core Laravel
                         </h4>
-                        <div class="space-y-2">
-                            @php
-                                $coreIndicators = [
-                                    ['XSRF-TOKEN cookie', $result['indicators']['xsrfToken']],
-                                    ['laravel_session cookie', $result['indicators']['laravelSession']],
-                                    ['CSRF meta tag', $result['indicators']['csrfMeta']],
-                                    ['_token input', $result['indicators']['tokenInput']],
+                            <div class="space-y-2">
+                                @php
+                                    $coreIndicators = [
+                                        ['XSRF-TOKEN cookie', $result['indicators']['xsrfToken']],
+                                        ['laravel_session cookie', $result['indicators']['laravelSession']],
+                                        ['CSRF meta tag', $result['indicators']['csrfMeta']],
+                                        ['_token input', $result['indicators']['tokenInput']],
                                     ['X-Powered-By header', $result['indicators']['poweredByHeader']],
-                                ];
-                            @endphp
-                            
-                            @foreach($coreIndicators as [$label, $found])
+                                    ];
+                                @endphp
+                                
+                                @foreach($coreIndicators as [$label, $found])
                                 <div class="flex items-center text-sm px-3 py-2 rounded-lg {{ $found ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-500' }}" role="listitem">
                                     <span class="mr-2" aria-hidden="true">{{ $found ? '✓' : '✗' }}</span>
-                                    <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
-                                </div>
-                            @endforeach
+                                        <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
 
                     <!-- Laravel Ecosystem -->
                     <div>
@@ -310,8 +310,8 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                             <span class="text-lg" aria-hidden="true">🌐</span>
                             Laravel Ecosystem
                         </h4>
-                        <div class="space-y-2">
-                            @php
+                            <div class="space-y-2">
+                                @php
                                 $ecosystemIndicators = [
                                     ['Vite assets', $result['indicators']['viteClient']],
                                     ['Mix manifest', $result['indicators']['mixManifest']],
@@ -320,17 +320,17 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                                     ['Laravel Echo', $result['indicators']['laravelEcho']],
                                     ['Blade comments', $result['indicators']['bladeComments']],
                                     ['Breeze / Jetstream layout', $result['indicators']['breezeJetstream']],
-                                ];
-                            @endphp
-                            
+                                    ];
+                                @endphp
+                                
                             @foreach($ecosystemIndicators as [$label, $found])
                                 <div class="flex items-center text-sm px-3 py-2 rounded-lg {{ $found ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-500' }}" role="listitem">
                                     <span class="mr-2" aria-hidden="true">{{ $found ? '✓' : '✗' }}</span>
-                                    <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
-                                </div>
-                            @endforeach
+                                        <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
 
                     <!-- Platform & Endpoints -->
                     <div>
@@ -338,29 +338,29 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                             <span class="text-lg" aria-hidden="true">🛠️</span>
                             Platform & Endpoints
                         </h4>
-                        <div class="space-y-2">
-                            @php
+                            <div class="space-y-2">
+                                @php
                                 $platformIndicators = [
                                     ['Laravel 404 page', $result['indicators']['laravel404']],
                                     ['/up health check', $result['indicators']['upEndpoint']],
                                     ['Telescope / Horizon / Nova / Pulse', $result['indicators']['laravelTools']],
                                     ['Filament', $result['indicators']['filament']],
                                     ['Statamic', $result['indicators']['statamic']],
-                                ];
-                            @endphp
-                            
+                                    ];
+                                @endphp
+                                
                             @foreach($platformIndicators as [$label, $found])
                                 <div class="flex items-center text-sm px-3 py-2 rounded-lg {{ $found ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-500' }}" role="listitem">
                                     <span class="mr-2" aria-hidden="true">{{ $found ? '✓' : '✗' }}</span>
-                                    <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
-                                </div>
-                            @endforeach
+                                        <span class="{{ $found ? 'font-medium' : '' }}">{{ $label }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Info Box -->
+                <!-- Info Box -->
             <div class="bg-blue-50 rounded-xl border border-blue-200 p-6 mb-6">
                 <div class="flex gap-3">
                     <div class="flex-shrink-0" aria-hidden="true">
@@ -371,16 +371,16 @@ Discover other sites built with Laravel at https://isit.laravel.cloud</div>
                     <div>
                         <h3 class="font-semibold text-gray-900 text-sm mb-2">About This Detection</h3>
                         <p class="text-gray-700 text-sm leading-relaxed mb-2">
-                            This tool analyzes various indicators to detect if a website is built with Laravel. 
+                        This tool analyzes various indicators to detect if a website is built with Laravel. 
                             We check for Laravel-specific cookies, CSRF tokens, build tools like Vite, modern 
                             frameworks like Inertia.js and Livewire, Laravel tools (Telescope, Horizon, Nova, Pulse), 
                             admin panels (Filament, Statamic), and the <code class="bg-blue-100 px-1 rounded">/up</code> health check endpoint.
-                        </p>
+                    </p>
                         <p class="text-gray-700 text-sm leading-relaxed">
-                            <strong>Note:</strong> Some Laravel sites may use custom configurations that hide these indicators, 
-                            which could result in false negatives. A low score doesn't always mean the site isn't Laravel.
-                        </p>
-                    </div>
+                        <strong>Note:</strong> Some Laravel sites may use custom configurations that hide these indicators, 
+                        which could result in false negatives. A low score doesn't always mean the site isn't Laravel.
+                    </p>
+                </div>
                 </div>
             </div>
 
