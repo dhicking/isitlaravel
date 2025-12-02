@@ -1001,4 +1001,138 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['success']);
         $this->assertTrue($result['indicators']['viteClient']);
     }
+
+    public function test_detects_livewire_on_login_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/login')) {
+                return Http::response('<html><body><div wire:id="login-form-123">Login Form</div></body></html>', 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['livewire'], 'Livewire should be detected from login page');
+    }
+
+    public function test_detects_livewire_on_signup_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/signup')) {
+                return Http::response('<html><body><div wire:id="signup-form-456">Signup Form</div></body></html>', 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['livewire'], 'Livewire should be detected from signup page');
+    }
+
+    public function test_detects_flux_ui_on_login_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/login')) {
+                return Http::response(
+                    '<html><head><link rel="stylesheet" href="/vendor/flux/app.css"></head><body><div class="flux-button">Login</div><script src="/vendor/flux/app.js"></script></body></html>',
+                    200
+                );
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['flux'], 'Flux UI should be detected from login page');
+        $this->assertTrue($result['indicators']['livewire'], 'Livewire should also be detected since Flux requires it');
+    }
+
+    public function test_detects_flux_ui_on_signup_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/signup')) {
+                return Http::response(
+                    '<html><head><link rel="stylesheet" href="/vendor/flux/app.css"></head><body><div class="flux-input">Signup</div><script src="/vendor/flux/app.js"></script></body></html>',
+                    200
+                );
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['flux'], 'Flux UI should be detected from signup page');
+        $this->assertTrue($result['indicators']['livewire'], 'Livewire should also be detected since Flux requires it');
+    }
+
+    public function test_detects_statamic_on_login_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/login')) {
+                return Http::response(
+                    '<html><head><meta name="generator" content="Statamic"></head><body>Login</body></html>',
+                    200
+                );
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['statamic'], 'Statamic should be detected from login page');
+    }
+
+    public function test_detects_statamic_on_signup_page_when_not_on_main(): void
+    {
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Homepage</body></html>', 200);
+            }
+            if (str_ends_with($url, '/signup')) {
+                return Http::response(
+                    '<html><head><link rel="stylesheet" href="/vendor/statamic/app.css"></head><body>Signup</body></html>',
+                    200
+                );
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['statamic'], 'Statamic should be detected from signup page');
+    }
 }

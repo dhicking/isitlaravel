@@ -231,8 +231,52 @@ class LaravelDetectorService
             if ($parallelChecks['viteManifest']) {
                 $indicators['viteClient'] = true;
             }
+
+            // Check auth pages (login/signup) for additional indicators
+            // These pages often have CSRF tokens, session cookies, Inertia components that might not be on the main page
+            $authPagesIndicators = $parallelChecks['authPagesIndicators'];
+            if ($authPagesIndicators['xsrfToken'] && ! $indicators['xsrfToken']) {
+                $indicators['xsrfToken'] = true;
+            }
+            if ($authPagesIndicators['laravelSession'] && ! $indicators['laravelSession']) {
+                $indicators['laravelSession'] = true;
+            }
+            if ($authPagesIndicators['csrfMeta'] && ! $indicators['csrfMeta']) {
+                $indicators['csrfMeta'] = true;
+            }
+            if ($authPagesIndicators['tokenInput'] && ! $indicators['tokenInput']) {
+                $indicators['tokenInput'] = true;
+            }
+            if ($authPagesIndicators['viteClient'] && ! $indicators['viteClient']) {
+                $indicators['viteClient'] = true;
+            }
+            // If Inertia is detected on auth pages and we have strong Laravel indicators, count it
+            if ($authPagesIndicators['inertia'] && ! $indicators['inertia']) {
+                // Check if we have strong Laravel indicators to validate Inertia
+                $hasStrongIndicators = $indicators['xsrfToken'] || $indicators['laravelSession'] || $indicators['viteClient']
+                    || $indicators['csrfMeta'] || $indicators['tokenInput'] || $indicators['poweredByHeader'];
+                if ($hasStrongIndicators || $authPagesIndicators['hasLaravelInertia']) {
+                    $indicators['inertia'] = true;
+                    // Update component name if we found one on auth pages
+                    if ($authPagesIndicators['inertiaComponent'] !== null && $inertiaComponent === null) {
+                        $inertiaComponent = $authPagesIndicators['inertiaComponent'];
+                    }
+                }
+            }
+
+            // If Livewire is detected on auth pages, count it
+            if ($authPagesIndicators['livewire'] && ! $indicators['livewire']) {
+                $indicators['livewire'] = true;
+            }
+
+            // If Flux UI is detected on auth pages, count it (and Livewire, since Flux requires it)
+            if ($authPagesIndicators['flux'] && ! $indicators['flux']) {
+                $indicators['flux'] = true;
+                $indicators['livewire'] = true;
+            }
+
             $indicators['filament'] = $filamentFromHtml || $parallelChecks['filament'];
-            $indicators['statamic'] = $statamicFromHtml || $parallelChecks['statamic'];
+            $indicators['statamic'] = $statamicFromHtml || $parallelChecks['statamic'] || $authPagesIndicators['statamic'];
             $indicators['upEndpoint'] = $parallelChecks['upEndpoint'];
 
         } catch (\Exception $e) {
@@ -689,6 +733,7 @@ class LaravelDetectorService
      *     laravelTools: array{detected: bool, tools: array<string>},
      *     mixManifest: bool,
      *     viteManifest: bool,
+     *     authPagesIndicators: array{xsrfToken: bool, laravelSession: bool, csrfMeta: bool, tokenInput: bool, viteClient: bool, inertia: bool, hasLaravelInertia: bool, inertiaComponent: string|null, livewire: bool, flux: bool, statamic: bool},
      *     filament: bool,
      *     statamic: bool,
      *     upEndpoint: bool
@@ -706,6 +751,8 @@ class LaravelDetectorService
         $mixManifestUrl = rtrim($url, '/').'/mix-manifest.json';
         $viteManifestUrl = rtrim($url, '/').'/build/.vite/manifest.json';
         $viteManifestAltUrl = rtrim($url, '/').'/.vite/manifest.json';
+        $loginUrl = rtrim($url, '/').'/login';
+        $signupUrl = rtrim($url, '/').'/signup';
         $filamentLoginUrl = rtrim($url, '/').'/filament/login';
         $adminLoginUrl = rtrim($url, '/').'/admin/login';
         $statamicCpUrl = rtrim($url, '/').'/cp';
@@ -718,6 +765,8 @@ class LaravelDetectorService
             $responseMixManifest,
             $responseViteManifest,
             $responseViteManifestAlt,
+            $responseLogin,
+            $responseSignup,
             $responseTelescope,
             $responseHorizon,
             $responseNova,
@@ -725,7 +774,7 @@ class LaravelDetectorService
             $responseFilamentLogin,
             $responseAdminLogin,
             $responseStatamicCp,
-        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $viteManifestUrl, $viteManifestAltUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
+        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $viteManifestUrl, $viteManifestAltUrl, $loginUrl, $signupUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
@@ -742,6 +791,9 @@ class LaravelDetectorService
                 // Vite manifest checks (Laravel's Vite plugin creates these)
                 $pool->timeout(3)->withHeaders($headers)->get($viteManifestUrl),
                 $pool->timeout(3)->withHeaders($headers)->get($viteManifestAltUrl),
+                // Common Laravel auth pages (often have strong indicators)
+                $pool->timeout(3)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($loginUrl),
+                $pool->timeout(3)->withHeaders(array_merge($headers, ['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']))->get($signupUrl),
                 // Laravel tools checks
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/telescope'),
                 $pool->timeout(3)->withHeaders($headers)->get(rtrim($url, '/').'/horizon'),
@@ -924,6 +976,10 @@ class LaravelDetectorService
         $filamentDetected = $this->detectFilamentFromResponses([$responseFilamentLogin, $responseAdminLogin]);
         $statamicDetected = $this->detectStatamicFromResponses([$responseStatamicCp]);
 
+        // Check login and signup pages for additional Laravel indicators
+        // These pages often have CSRF tokens, session cookies, Inertia components, etc.
+        $authPagesIndicators = $this->checkAuthPagesForIndicators([$responseLogin, $responseSignup]);
+
         return [
             'laravel404' => $laravel404,
             'laravelTools' => [
@@ -932,6 +988,7 @@ class LaravelDetectorService
             ],
             'mixManifest' => $mixManifestDetected,
             'viteManifest' => $viteManifestDetected,
+            'authPagesIndicators' => $authPagesIndicators,
             'filament' => $filamentDetected,
             'statamic' => $statamicDetected,
             'upEndpoint' => $upEndpointDetected,
@@ -1208,6 +1265,128 @@ class LaravelDetectorService
         }
 
         return false;
+    }
+
+    /**
+     * Check login and signup pages for Laravel indicators.
+     *
+     * These pages often have CSRF tokens, session cookies, Inertia components, etc.
+     * that might not be present on the main page.
+     *
+     * @param  array<int, \Illuminate\Http\Client\Response|\Illuminate\Http\Client\ConnectionException>  $responses  Array of HTTP responses from login/signup pages
+     * @return array{xsrfToken: bool, laravelSession: bool, csrfMeta: bool, tokenInput: bool, viteClient: bool, inertia: bool, hasLaravelInertia: bool, inertiaComponent: string|null, livewire: bool, flux: bool, statamic: bool}
+     */
+    private function checkAuthPagesForIndicators(array $responses): array
+    {
+        $indicators = [
+            'xsrfToken' => false,
+            'laravelSession' => false,
+            'csrfMeta' => false,
+            'tokenInput' => false,
+            'viteClient' => false,
+            'inertia' => false,
+            'hasLaravelInertia' => false,
+            'inertiaComponent' => null,
+            'livewire' => false,
+            'flux' => false,
+            'statamic' => false,
+        ];
+
+        foreach ($responses as $response) {
+            if (! ($response instanceof \Illuminate\Http\Client\Response)) {
+                continue;
+            }
+
+            try {
+                if (! $response->successful()) {
+                    continue;
+                }
+
+                $html = $response->body();
+                $cookies = $response->cookies();
+                $lowerHtml = strtolower($html);
+
+                // Check cookies
+                foreach ($cookies as $cookie) {
+                    $cookieName = $cookie->getName();
+                    if (strcasecmp($cookieName, 'XSRF-TOKEN') === 0 || strcasecmp($cookieName, 'xsrf-token') === 0) {
+                        $indicators['xsrfToken'] = true;
+                    }
+                    if (strcasecmp($cookieName, 'laravel_session') === 0) {
+                        $indicators['laravelSession'] = true;
+                    }
+                }
+
+                // Check HTML content
+                if ($this->containsPattern($html, '<meta\s+name=["\']csrf-token["\']')) {
+                    $indicators['csrfMeta'] = true;
+                }
+                if ($this->containsPattern($html, '<input[^>]+name=["\']_token["\']')) {
+                    $indicators['tokenInput'] = true;
+                }
+
+                // Check for Vite
+                $vitePatterns = [
+                    'src=["\'][^"\']*@vite',
+                    'src=["\'][^"\']*@vite/client',
+                    'href=["\'][^"\']*@vite',
+                    '<script[^>]*type=["\']module["\'][^>]*src=["\'][^"\']*\/build\/assets\/[^"\']*\.js["\']',
+                    '<link[^>]*href=["\'][^"\']*\/build\/assets\/[^"\']*\.css["\']',
+                ];
+                foreach ($vitePatterns as $pattern) {
+                    if ($this->containsPattern($html, $pattern)) {
+                        $indicators['viteClient'] = true;
+                        break;
+                    }
+                }
+
+                // Check for Inertia
+                if ($this->containsPattern($html, 'data-page')) {
+                    if (preg_match('/data-page=["\']([^"\']+)["\']/', $html, $matches)) {
+                        $pageData = json_decode(html_entity_decode($matches[1]), true);
+                        if (isset($pageData['component'])) {
+                            $indicators['inertiaComponent'] = $pageData['component'];
+                        }
+
+                        // Check if we have strong Laravel indicators
+                        $hasStrongIndicators = $indicators['xsrfToken'] || $indicators['laravelSession']
+                            || $indicators['viteClient'] || $indicators['csrfMeta'] || $indicators['tokenInput'];
+
+                        $hasLaravelInertia = $this->detectLaravelInertia($pageData, $html, $hasStrongIndicators);
+                        if ($hasLaravelInertia) {
+                            $indicators['inertia'] = true;
+                            $indicators['hasLaravelInertia'] = true;
+                        }
+                    }
+                }
+
+                // Check for Livewire
+                $livewirePatterns = ['wire:id', 'wire:initial-data', 'window\.Livewire', 'Livewire\.'];
+                foreach ($livewirePatterns as $pattern) {
+                    if (str_contains($html, $pattern)) {
+                        $indicators['livewire'] = true;
+                        break;
+                    }
+                }
+
+                // Check for Flux UI (requires Livewire, which requires Laravel)
+                if ($this->detectFlux($html)) {
+                    $indicators['flux'] = true;
+                    // Flux requires Livewire, so set Livewire indicator to true
+                    $indicators['livewire'] = true;
+                }
+
+                // Check for Statamic
+                if ($this->detectStatamicFromHtml($html)) {
+                    $indicators['statamic'] = true;
+                }
+            } catch (\Exception $e) {
+                // Ignore errors for individual responses
+                continue;
+            }
+        }
+
+        return $indicators;
     }
 
     /**
