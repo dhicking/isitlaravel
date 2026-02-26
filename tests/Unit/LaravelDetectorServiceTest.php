@@ -255,6 +255,30 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['indicators']['upEndpoint']);
     }
 
+    public function test_detects_up_endpoint_on_bare_domain_when_www_entered(): void
+    {
+        // When user enters www.example.com, site may only respond on example.com
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://www.example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if ($url === 'https://example.com/up') {
+                return Http::response('', 200);
+            }
+            if (str_ends_with($url, '/up')) {
+                return Http::response('', 404);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('www.example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['upEndpoint']);
+    }
+
     public function test_detects_mix_manifest(): void
     {
         $this->fakeParallelRequests(function ($request) {

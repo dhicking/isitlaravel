@@ -748,13 +748,18 @@ class LaravelDetectorService
         $randomComparisonPath = '/random-nonexistent-'.bin2hex(random_bytes(8));
         $testUrlRandom = rtrim($url, '/').$randomComparisonPath;
         $testUrlUp = rtrim($url, '/').'/up';
-        // When user enters example.com, site may only respond on www.example.com; try both for /up
+        // Try both www and bare domain for /up (sites may only respond on one)
         $testUrlUpAlt = null;
         $parsed = parse_url($url);
         $host = $parsed['host'] ?? '';
-        if ($host !== '' && ! str_starts_with(strtolower($host), 'www.')) {
-            $scheme = $parsed['scheme'] ?? 'https';
-            $testUrlUpAlt = $scheme.'://www.'.$host.'/up';
+        $scheme = $parsed['scheme'] ?? 'https';
+        if ($host !== '') {
+            $hostLower = strtolower($host);
+            if (str_starts_with($hostLower, 'www.')) {
+                $testUrlUpAlt = $scheme.'://'.substr($host, 4).'/up'; // bare domain
+            } else {
+                $testUrlUpAlt = $scheme.'://www.'.$host.'/up';
+            }
         }
         $mixManifestUrl = rtrim($url, '/').'/mix-manifest.json';
         $viteManifestUrl = rtrim($url, '/').'/build/.vite/manifest.json';
