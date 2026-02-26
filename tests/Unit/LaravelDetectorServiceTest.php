@@ -230,6 +230,31 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['indicators']['upEndpoint']);
     }
 
+    public function test_detects_up_endpoint_on_www_when_bare_domain_entered(): void
+    {
+        // When user enters example.com, site may only respond on www.example.com
+        $this->fakeParallelRequests(function ($request) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if ($url === 'https://www.example.com/up') {
+                return Http::response('', 200);
+            }
+            // Primary /up (example.com/up) returns 404; only www has /up
+            if (str_ends_with($url, '/up')) {
+                return Http::response('', 404);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['upEndpoint']);
+    }
+
     public function test_detects_mix_manifest(): void
     {
         $this->fakeParallelRequests(function ($request) {
@@ -344,6 +369,34 @@ class LaravelDetectorServiceTest extends TestCase
                 '<html><body class="font-sans antialiased"><div class="min-h-screen bg-gray-100">Content</div></body></html>',
                 200
             ),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['breezeJetstream']);
+    }
+
+    public function test_does_not_detect_breeze_jetstream_when_jetstream_only_in_body_text(): void
+    {
+        $html = '<html><body><header><svg>logo</svg></header><ul><li>Breeze</li><li>Jetstream</li><li>Fortify</li></ul><p>Works with Laravel.</p></body></html>';
+        Http::fake([
+            'https://example.com' => Http::response($html, 200),
+            'https://example.com/*' => Http::response('', 404),
+        ]);
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertFalse($result['indicators']['breezeJetstream']);
+    }
+
+    public function test_detects_breeze_jetstream_when_jetstream_in_framework_context(): void
+    {
+        $html = '<html><body><div class="font-sans antialiased"><div class="min-h-screen bg-gray-100"></div></div><script src="/vendor/laravel/jetstream/js/app.js"></script><svg>logo</svg></body></html>';
+        Http::fake([
+            'https://example.com' => Http::response($html, 200),
             'https://example.com/*' => Http::response('', 404),
         ]);
 

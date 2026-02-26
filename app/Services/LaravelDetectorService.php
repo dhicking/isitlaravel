@@ -748,6 +748,14 @@ class LaravelDetectorService
         $randomComparisonPath = '/random-nonexistent-'.bin2hex(random_bytes(8));
         $testUrlRandom = rtrim($url, '/').$randomComparisonPath;
         $testUrlUp = rtrim($url, '/').'/up';
+        // When user enters example.com, site may only respond on www.example.com; try both for /up
+        $testUrlUpAlt = null;
+        $parsed = parse_url($url);
+        $host = $parsed['host'] ?? '';
+        if ($host !== '' && ! str_starts_with(strtolower($host), 'www.')) {
+            $scheme = $parsed['scheme'] ?? 'https';
+            $testUrlUpAlt = $scheme.'://www.'.$host.'/up';
+        }
         $mixManifestUrl = rtrim($url, '/').'/mix-manifest.json';
         $viteManifestUrl = rtrim($url, '/').'/build/.vite/manifest.json';
         $viteManifestAltUrl = rtrim($url, '/').'/.vite/manifest.json';
@@ -764,6 +772,7 @@ class LaravelDetectorService
             $response404,
             $responseRandom,
             $responseUp,
+            $responseUpAlt,
             $responseMixManifest,
             $responseViteManifest,
             $responseViteManifestAlt,
@@ -778,10 +787,11 @@ class LaravelDetectorService
             $responseFilamentLogin,
             $responseAdminLogin,
             $responseStatamicCp,
-        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $mixManifestUrl, $viteManifestUrl, $viteManifestAltUrl, $loginUrl, $signupUrl, $registerUrl, $signinUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
+        ] = Http::pool(function ($pool) use ($testUrl404, $testUrlRandom, $testUrlUp, $testUrlUpAlt, $mixManifestUrl, $viteManifestUrl, $viteManifestAltUrl, $loginUrl, $signupUrl, $registerUrl, $signinUrl, $filamentLoginUrl, $adminLoginUrl, $statamicCpUrl, $url) {
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ];
+            $upAltUrl = $testUrlUpAlt ?? $testUrlUp;
 
             return [
                 // 404 check
@@ -790,6 +800,8 @@ class LaravelDetectorService
                 $pool->timeout(3)->withHeaders($headers)->get($testUrlRandom),
                 // /up endpoint check
                 $pool->timeout(3)->withHeaders($headers)->get($testUrlUp),
+                // /up on www variant when user entered bare domain (e.g. troverster.com -> www.troverster.com)
+                $pool->timeout(3)->withHeaders($headers)->get($upAltUrl),
                 // Mix manifest check
                 $pool->timeout(3)->withHeaders($headers)->get($mixManifestUrl),
                 // Vite manifest checks (Laravel's Vite plugin creates these)
@@ -946,17 +958,21 @@ class LaravelDetectorService
             }
         }
 
-        // Process /up endpoint check
+        // Process /up endpoint check (try primary URL and www variant; Laravel returns small body or empty)
         $upEndpointDetected = false;
-        try {
-            if ($responseUp instanceof Response && $responseUp->successful()) {
-                $body = trim($responseUp->body());
-                if (strlen($body) < 100) {
-                    $upEndpointDetected = true;
+        $maxUpBodyBytes = 500;
+        foreach ([$responseUp, $responseUpAlt] as $response) {
+            try {
+                if ($response instanceof Response && $response->successful()) {
+                    $body = trim($response->body());
+                    if (strlen($body) < $maxUpBodyBytes) {
+                        $upEndpointDetected = true;
+                        break;
+                    }
                 }
+            } catch (\Exception $e) {
+                // Ignore error, try next response
             }
-        } catch (\Exception $e) {
-            // Ignore error
         }
 
         $mixManifestDetected = false;
@@ -1084,13 +1100,20 @@ class LaravelDetectorService
 
     /**
      * Detect if the layout appears to use the default Breeze / Jetstream styling.
+     * Requires framework-specific context to avoid false positives (e.g. "Jetstream" in docs or lists).
      */
     private function detectBreezeJetstream(string $html): bool
     {
         $lower = strtolower($html);
 
         $layoutClassesDetected = str_contains($lower, 'font-sans antialiased') && str_contains($lower, 'min-h-screen') && str_contains($lower, 'bg-gray-100');
-        $logoComponentDetected = str_contains($lower, 'svg') && str_contains($lower, 'jetstream');
+        // Only count Jetstream when it appears in a framework context (asset path, class, URL), not in body text
+        $jetstreamInFrameworkContext = preg_match('/class=["\'][^"\']*jetstream[^"\']*["\']/', $lower)
+            || preg_match('/href=["\'][^"\']*jetstream[^"\']*["\']/', $lower)
+            || preg_match('/src=["\'][^"\']*jetstream[^"\']*["\']/', $lower)
+            || str_contains($lower, '/vendor/laravel/jetstream')
+            || str_contains($lower, 'vendor/jetstream');
+        $logoComponentDetected = str_contains($lower, 'svg') && $jetstreamInFrameworkContext;
 
         return $layoutClassesDetected || $logoComponentDetected;
     }
