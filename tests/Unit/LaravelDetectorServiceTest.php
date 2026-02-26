@@ -279,6 +279,28 @@ class LaravelDetectorServiceTest extends TestCase
         $this->assertTrue($result['indicators']['upEndpoint']);
     }
 
+    public function test_detects_up_endpoint_with_custom_html_response(): void
+    {
+        // Custom Laravel /up views can return HTML with "Application up" and timing (e.g. > 500 bytes)
+        $html = '<!DOCTYPE html><html><head><title>Health</title></head><body><h1>Application up</h1><p>HTTP request received. Response rendered in 164ms.</p></body></html>';
+        $this->fakeParallelRequests(function ($request) use ($html) {
+            $url = $request->url();
+            if ($url === 'https://example.com') {
+                return Http::response('<html><body>Test</body></html>', 200);
+            }
+            if (str_ends_with($url, '/up')) {
+                return Http::response($html, 200);
+            }
+
+            return null;
+        });
+
+        $result = $this->service->detect('example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['indicators']['upEndpoint']);
+    }
+
     public function test_detects_mix_manifest(): void
     {
         $this->fakeParallelRequests(function ($request) {

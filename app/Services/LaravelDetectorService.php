@@ -963,16 +963,27 @@ class LaravelDetectorService
             }
         }
 
-        // Process /up endpoint check (try primary URL and www variant; Laravel returns small body or empty)
+        // Process /up endpoint check (try primary URL and www variant)
+        // Laravel returns empty/small body by default; custom views may return HTML with "Application up" etc.
         $upEndpointDetected = false;
-        $maxUpBodyBytes = 500;
+        $maxUpBodyBytes = 2000;
+        $maxUpBodyBytesForSignature = 10000;
         foreach ([$responseUp, $responseUpAlt] as $response) {
             try {
                 if ($response instanceof Response && $response->successful()) {
                     $body = trim($response->body());
-                    if (strlen($body) < $maxUpBodyBytes) {
+                    $len = strlen($body);
+                    if ($len < $maxUpBodyBytes) {
                         $upEndpointDetected = true;
                         break;
+                    }
+                    // Custom Laravel /up views often return HTML with "Application up" and timing
+                    if ($len < $maxUpBodyBytesForSignature) {
+                        $lower = strtolower($body);
+                        if (str_contains($lower, 'application') && str_contains($lower, ' up')) {
+                            $upEndpointDetected = true;
+                            break;
+                        }
                     }
                 }
             } catch (\Exception $e) {
