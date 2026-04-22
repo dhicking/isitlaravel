@@ -463,12 +463,22 @@ class LaravelDetectorServiceTest extends TestCase
 
             if ($request->method() === 'GET' && str_contains($url, 'laravel-detector-check-')) {
                 $html = <<<'HTML'
-                <html class="font-sans antialiased">
-                    <body class="min-h-screen bg-gray-100">
-                        <h1>Laravel</h1>
-                        <p>Sorry, the page you are looking for could not be found.</p>
-                        <a href="https://laravel.com/docs">Documentation</a>
-                    </body>
+                <!DOCTYPE html>
+                <html lang="en">
+                <head><meta charset="utf-8"><title>Not Found</title>
+                <style>/*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
+                .antialiased{-webkit-font-smoothing:antialiased}.min-h-screen{min-height:100vh}.bg-gray-100{background-color:#f7fafc}.text-gray-500{color:#a0aec0}.max-w-xl{max-width:36rem}.mx-auto{margin-left:auto;margin-right:auto}
+                </style></head>
+                <body class="antialiased">
+                    <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center sm:pt-0">
+                        <div class="max-w-xl mx-auto sm:px-6 lg:px-8">
+                            <div class="flex items-center pt-8 sm:justify-start sm:pt-0">
+                                <div class="px-4 text-lg text-gray-500 border-r border-gray-400 tracking-wider">404</div>
+                                <div class="ml-4 text-lg text-gray-500 uppercase tracking-wider">Not Found</div>
+                            </div>
+                        </div>
+                    </div>
+                </body>
                 </html>
                 HTML;
 

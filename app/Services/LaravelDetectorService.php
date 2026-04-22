@@ -334,6 +334,35 @@ class LaravelDetectorService
     }
 
     /**
+     * Detect whether HTML is Laravel's default error page by checking for
+     * fingerprints unique to the framework's bundled error views.
+     */
+    private function isLaravelDefault404(string $html): bool
+    {
+        // Strong fingerprints — any one is sufficient. These are unique to Laravel's default
+        // error template, which inlines normalize.css + a Tailwind utility subset in <style> tags.
+        if (
+            (str_contains($html, 'normalize.css') && str_contains($html, '<style>'))
+            || str_contains($html, 'border-r border-gray-400 tracking-wider')
+            || (str_contains($html, '.antialiased{') && str_contains($html, '.min-h-screen{'))
+        ) {
+            return true;
+        }
+
+        // Weaker signals that could appear on any Tailwind site — require several to match
+        $weakIndicators = [
+            str_contains($html, '<title>404') || str_contains($html, '<title>Not Found'),
+            str_contains($html, 'min-h-screen') && str_contains($html, 'bg-gray-100'),
+            str_contains($html, 'max-w-xl') && str_contains($html, 'mx-auto'),
+            str_contains($html, 'text-gray-500') && str_contains($html, 'antialiased'),
+            str_contains($html, 'laravel') || str_contains($html, 'Laravel'),
+            str_contains($html, 'PAGE NOT FOUND') || str_contains($html, 'We could not find the page'),
+        ];
+
+        return count(array_filter($weakIndicators)) >= 4;
+    }
+
+    /**
      * Check if the website has a Laravel-styled 404 error page.
      *
      * @param  string  $url  The base URL to check
@@ -354,31 +383,7 @@ class LaravelDetectorService
                 ->get($testUrl);
 
             if ($response->status() === 404) {
-                $html = $response->body();
-
-                // Check for Laravel 404 page indicators
-                $indicators = [
-                    // Title indicators
-                    str_contains($html, '<title>404') || str_contains($html, '<title>Not Found'),
-                    // Tailwind CSS classes common in Laravel
-                    str_contains($html, 'min-h-screen'),
-                    str_contains($html, 'bg-gray-100'),
-                    str_contains($html, 'text-gray-500'),
-                    str_contains($html, 'antialiased'),
-                    // Common Laravel error page text
-                    str_contains($html, 'PAGE NOT FOUND'),
-                    str_contains($html, 'laravel') || str_contains($html, 'Laravel'),
-                    str_contains($html, 'Oops!'),
-                    str_contains($html, 'We could not find the page'),
-                    // Layout classes
-                    str_contains($html, 'max-w-xl'),
-                    str_contains($html, 'mx-auto'),
-                    // SVG with 404
-                    (str_contains($html, '<svg') && str_contains($html, '404')),
-                ];
-
-                $matchCount = count(array_filter($indicators));
-                $detected = $matchCount >= 3; // Need at least 3 indicators
+                $detected = $this->isLaravelDefault404($response->body());
 
                 return [
                     'detected' => $detected,
@@ -835,23 +840,7 @@ class LaravelDetectorService
         try {
             if ($response404 instanceof Response && $response404->status() === 404) {
                 $html = $response404->body();
-                $lowerHtml = strtolower($html);
-
-                $containsLaravelWord = str_contains($lowerHtml, 'laravel');
-                $containsDefaultMessage = str_contains($lowerHtml, 'page you are looking for could not be found')
-                    || str_contains($lowerHtml, 'page you requested could not be found');
-                $containsDocsLink = str_contains($lowerHtml, 'laravel.com/docs');
-                $containsTailwindLayout = str_contains($lowerHtml, 'font-sans antialiased')
-                    && str_contains($lowerHtml, 'min-h-screen')
-                    && str_contains($lowerHtml, 'bg-gray-100');
-
-                $laravelSpecificMatches = collect([
-                    $containsDefaultMessage,
-                    $containsDocsLink,
-                    $containsTailwindLayout,
-                ])->filter()->count();
-
-                $isLaravel404 = $containsLaravelWord && $laravelSpecificMatches >= 1;
+                $isLaravel404 = $this->isLaravelDefault404($html);
 
                 $laravel404 = [
                     'detected' => $isLaravel404,

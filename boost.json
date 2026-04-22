@@ -2,11 +2,13 @@
     "agents": [
         "cursor"
     ],
-    "guidelines": true,
-    "herd_mcp": false,
+    "editors": [
+        "claude_code",
+        "cursor",
+        "opencode"
+    ],
+    "guidelines": [],
     "mcp": true,
-    "nightwatch_mcp": false,
-    "sail": false,
     "skills": [
         "tailwindcss-development"
     ]
